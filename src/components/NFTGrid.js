@@ -24,36 +24,22 @@ function NFTGrid() {
     const fetchMintedStatus = async () => {
       try {
         setProgress(30);
-        
-        // Actually fetch the transactions
         const transactions = await getAllTransactions();
-        console.log(`Found ${transactions.length} minted NFTs`);
-        
         setProgress(60);
-        
-        // Process the transactions
         const nftStatuses = processNFTStatuses(transactions);
-        
         setProgress(90);
         
-        // Update items with minted status
-        setItems(prevItems => 
-          prevItems.map(item => ({
-            ...item,
-            isMinted: nftStatuses.has(item.id),
-            owner: nftStatuses.get(item.id)?.owner || null
-          }))
-        );
+        setItems(prevItems => prevItems.map(item => ({
+          ...item,
+          isMinted: nftStatuses.has(item.id),
+          owner: nftStatuses.get(item.id)?.owner || null
+        })));
         
         setProgress(100);
-        
-        // Start fade out
         setFadeOut(true);
-        
-        // Wait for fade out animation to complete before removing overlay
         setTimeout(() => setLoading(false), 1500);
       } catch (error) {
-        console.error('Error fetching minted status:', error);
+        console.error('Error in fetchMintedStatus:', error);
         setFadeOut(true);
         setTimeout(() => setLoading(false), 1500);
       }
@@ -64,27 +50,29 @@ function NFTGrid() {
 
   return (
     <>
-      <div className="nft-grid">
-        {items.map(item => (
-          <div 
-            key={item.id} 
-            className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(item.isMinted ? item.etherscanUrl : item.baycUrl, '_blank', 'noopener,noreferrer');
-            }}
-            title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - Original BAYC`}
-          >
-            <img 
-              src={item.isMinted ? item.imageUrl : '/placeholder.png'}
-              alt={`#${item.id}`}
-              loading="lazy"
-              onError={(e) => {
-                e.target.src = '/placeholder.png';
+      <div className="nft-grid-container">
+        <div className="nft-grid">
+          {items.map(item => (
+            <div 
+              key={item.id} 
+              className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'}`}
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(item.isMinted ? item.etherscanUrl : item.baycUrl, '_blank', 'noopener,noreferrer');
               }}
-            />
-          </div>
-        ))}
+              title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - Original BAYC`}
+            >
+              <img 
+                src={item.isMinted ? item.imageUrl : '/placeholder.png'}
+                alt={`#${item.id}`}
+                loading="lazy"
+                onError={(e) => {
+                  e.target.src = '/placeholder.png';
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
       
       {loading && (
@@ -103,4 +91,4 @@ function NFTGrid() {
   );
 }
 
-export default NFTGrid;
+export default NFTGrid; 
