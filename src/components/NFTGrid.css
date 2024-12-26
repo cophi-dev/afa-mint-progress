@@ -1,0 +1,119 @@
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 16px);
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-height: 100vh;
+  background: #282c34;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.nft-cell {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: relative;
+}
+
+.nft-cell img {
+  width: 16px;
+  height: 16px;
+  display: block;
+  image-rendering: pixelated;
+  transition: all 0.3s ease-in-out;
+  opacity: 1;
+}
+
+.minted {
+  opacity: 1;
+}
+
+.unminted {
+  opacity: 0.3;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.nft-cell:hover {
+  opacity: 0.8;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.minted:hover {
+  z-index: 1000;
+}
+
+.minted:hover img {
+  transform: scale(2);
+  transform-origin: center;
+  position: relative;
+  z-index: 1000;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  opacity: 1;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(40, 44, 52, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 1000;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1.5s ease-out, visibility 1.5s ease-out;
+}
+
+.loading-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-logo {
+  width: 200px;
+  height: 200px;
+  animation: pulse 2s infinite;
+}
+
+.progress-bar-container {
+  width: 300px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  color: #fff;
+  font-size: 16px;
+  font-family: monospace;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+} 
