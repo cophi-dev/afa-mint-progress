@@ -47,6 +47,7 @@ html, body, #root {
   height: 16px;
   display: block;
   image-rendering: pixelated;
+  transition: all 0.2s ease-in-out; /* Smooth transition for all changes */
 }
 
 /* States */
@@ -56,18 +57,28 @@ html, body, #root {
 
 .unminted {
   opacity: 0.3;
+  transition: opacity 0.2s ease-in-out;
 }
 
 /* Hover Effects */
-.minted:hover {
+.nft-cell:hover {
   z-index: 1000;
 }
 
-.minted:hover img {
+.nft-cell:hover img {
   transform: scale(2);
   transform-origin: center;
   position: relative;
   z-index: 1000;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* Specific hover for unminted */
+.unminted:hover img {
+  opacity: 0.8;
 }
 
 /* Loading Screen */
