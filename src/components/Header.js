@@ -1,23 +1,23 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './Header.css';
 
 function Header({ mintedCount, latestMints }) {
   const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 200 });
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
   const headerRef = useRef(null);
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleMouseDown = (e) => {
+    if (isMobile) return;
     isDragging.current = true;
     const rect = headerRef.current.getBoundingClientRect();
     dragOffset.current = {
@@ -27,12 +27,11 @@ function Header({ mintedCount, latestMints }) {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDragging.current) return;
+    if (!isDragging.current || isMobile) return;
 
     const newX = e.clientX - dragOffset.current.x;
     const newY = e.clientY - dragOffset.current.y;
 
-    // Keep within window bounds
     const maxX = window.innerWidth - headerRef.current.offsetWidth;
     const maxY = window.innerHeight - headerRef.current.offsetHeight;
 
@@ -46,38 +45,49 @@ function Header({ mintedCount, latestMints }) {
     isDragging.current = false;
   };
 
-  React.useEffect(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+  useEffect(() => {
+    if (!isMobile) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isMobile]);
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <header 
       ref={headerRef}
       className="header" 
       onMouseDown={handleMouseDown}
-      style={{
+      style={!isMobile ? {
         transform: `translate(${position.x}px, ${position.y}px)`,
         position: 'fixed',
         top: 0,
         left: 0,
         margin: 0
-      }}
+      } : undefined}
     >
       <div className="header-content">
         <div className="header-title">
           <h1>AFA Mint Progress</h1>
-          <p>Total minted: {mintedCount} / 10000</p>
+          <p>{mintedCount} / 10000 minted</p>
         </div>
         <div className="latest-mints">
-          <h2>Latest Mints</h2>
           <ul>
-            {latestMints.slice(0, 5).map((mint) => (
+            {latestMints.slice(0, 3).map((mint) => (
               <li key={mint.tokenId}>
                 Token #{mint.tokenId} · {formatDate(mint.timestamp)}
               </li>

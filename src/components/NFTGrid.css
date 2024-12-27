@@ -1,86 +1,44 @@
-/* Reset all margins and padding */
+/* Reset */
 *, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
+html, body, #root {
   margin: 0;
   padding: 0;
   background: #282c34;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
-#root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* Add wrapper for grid */
+/* Grid Container */
 .nft-grid-wrapper {
-  width: 100%;
-  min-height: 100vh;
-  position: relative;
-  padding-top: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0; /* No bottom spacing on desktop */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* Grid */
 .nft-grid {
   display: grid;
   grid-template-columns: repeat(100, 16px);
   gap: 0;
-  padding: 0;
-  margin: 0;
   width: 1600px;
-  min-height: 1600px;
+  height: 1600px;
   background: #282c34;
-  overflow: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
 }
 
-/* Large screen layout */
-@media (min-width: 1600px) {
-  .nft-grid {
-    gap: 1px;
-    width: auto;
-  }
-}
-
-/* Mobile styles */
-@media (max-width: 480px) {
-  .nft-grid {
-    width: 100vw; /* Full viewport width */
-    left: 0;
-    grid-template-columns: repeat(auto-fill, 16px);
-    justify-content: center;
-  }
-
-  .header {
-    width: 100vw;
-    padding: 20px 10px; /* Reduce padding on mobile */
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .latest-mints {
-    text-align: center;
-    margin-top: 10px;
-  }
-}
-
+/* NFT Items */
 .nft-cell {
   width: 16px;
   height: 16px;
-  cursor: pointer;
   position: relative;
 }
 
@@ -89,24 +47,18 @@ html, body {
   height: 16px;
   display: block;
   image-rendering: pixelated;
-  transition: all 0.3s ease-in-out;
-  opacity: 1;
 }
 
+/* States */
 .minted {
   opacity: 1;
 }
 
 .unminted {
   opacity: 0.3;
-  transition: opacity 0.3s ease-in-out;
 }
 
-.nft-cell:hover {
-  opacity: 0.8;
-  transition: opacity 0.3s ease-in-out;
-}
-
+/* Hover Effects */
 .minted:hover {
   z-index: 1000;
 }
@@ -116,31 +68,21 @@ html, body {
   transform-origin: center;
   position: relative;
   z-index: 1000;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-  opacity: 1;
 }
 
+/* Loading Screen */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(40, 44, 52, 0.9);
+  background: #282c34;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  z-index: 1000;
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 1.5s ease-out, visibility 1.5s ease-out;
-}
-
-.loading-overlay.fade-out {
-  opacity: 0;
-  visibility: hidden;
+  z-index: 2000;
 }
 
 .loading-logo {
@@ -155,6 +97,7 @@ html, body {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   overflow: hidden;
+  margin-top: 20px;
 }
 
 .progress-bar {
@@ -167,19 +110,31 @@ html, body {
   color: #fff;
   font-size: 16px;
   font-family: monospace;
+  margin-top: 20px;
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Mobile Styles */
+@media (max-width: 480px) {
+  .nft-grid-wrapper {
+    bottom: 120px; /* Increased space for header on mobile */
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
+
+  .nft-grid {
+    margin-bottom: 16px;
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
+
+  .loading-logo {
+    width: 120px;
+    height: 120px;
+  }
+
+  .progress-bar-container {
+    width: 200px;
   }
 } 
