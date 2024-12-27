@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllTransactions, processNFTStatuses } from '../services/etherscanService';
+import Header from './Header';
 import './NFTGrid.css';
 
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
@@ -19,6 +20,8 @@ function NFTGrid() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
+  const [mintedCount, setMintedCount] = useState(0);
+  const [latestMints, setLatestMints] = useState([]);
 
   useEffect(() => {
     const fetchMintedStatus = async () => {
@@ -29,6 +32,16 @@ function NFTGrid() {
         const nftStatuses = processNFTStatuses(transactions);
         setProgress(90);
         
+        setMintedCount(nftStatuses.size);
+        const latest = Array.from(nftStatuses.entries())
+          .map(([tokenId, data]) => ({
+            tokenId,
+            owner: data.owner,
+            timestamp: data.timestamp
+          }))
+          .sort((a, b) => b.timestamp - a.timestamp);
+        setLatestMints(latest);
+
         setItems(prevItems => prevItems.map(item => ({
           ...item,
           isMinted: nftStatuses.has(item.id),
@@ -50,7 +63,8 @@ function NFTGrid() {
 
   return (
     <>
-      <div className="nft-grid-container">
+      <Header mintedCount={mintedCount} latestMints={latestMints} />
+      <div className="nft-grid-wrapper">
         <div className="nft-grid">
           {items.map(item => (
             <div 

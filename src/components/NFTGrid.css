@@ -20,6 +20,14 @@ html, body {
   height: 100%;
 }
 
+/* Add wrapper for grid */
+.nft-grid-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  padding-top: 0;
+}
+
 .nft-grid {
   display: grid;
   grid-template-columns: repeat(100, 16px);
@@ -43,13 +51,29 @@ html, body {
   }
 }
 
-/* Mobile responsive layout */
+/* Mobile styles */
 @media (max-width: 480px) {
   .nft-grid {
-    grid-template-columns: repeat(auto-fit, 16px);
-    width: 100%;
+    width: 100vw; /* Full viewport width */
+    left: 0;
+    grid-template-columns: repeat(auto-fill, 16px);
     justify-content: center;
-    padding: 0;
+  }
+
+  .header {
+    width: 100vw;
+    padding: 20px 10px; /* Reduce padding on mobile */
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .latest-mints {
+    text-align: center;
+    margin-top: 10px;
   }
 }
 
