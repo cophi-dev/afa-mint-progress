@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAllTransactions, processNFTStatuses } from '../services/etherscanService';
 import Header from './Header';
 import './NFTGrid.css';
+import Joystick from './Joystick';
 
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
@@ -63,7 +64,6 @@ function NFTGrid() {
 
   return (
     <>
-      <Header mintedCount={mintedCount} latestMints={latestMints} />
       <div className="nft-grid-wrapper">
         <div className="nft-grid">
           {items.map(item => (
@@ -88,7 +88,8 @@ function NFTGrid() {
           ))}
         </div>
       </div>
-      
+      <Joystick />
+      <Header mintedCount={mintedCount} latestMints={latestMints} />
       {loading && (
         <div className={`loading-overlay ${fadeOut ? 'fade-out' : ''}`}>
           <img src="/logo.png" alt="Logo" className="loading-logo" />
