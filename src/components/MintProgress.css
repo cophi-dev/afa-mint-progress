@@ -8,7 +8,7 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
-  min-width: 360px;
+  width: 360px;
   user-select: none;
 }
 
@@ -16,10 +16,19 @@
   cursor: move;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .mint-progress {
-    left: 10px;
-    right: 10px;
-    min-width: unset;
+    position: fixed !important;
+    transform: none !important;
+    width: 100%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
   }
-} 
+
+  .drag-handle {
+    cursor: default;
+  }
+}
