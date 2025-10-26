@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import imageCids from '../data/image_cids.json';
 
 // Cache for successful loads
@@ -12,7 +12,12 @@ const NFTCell = memo(({
   imageUrl,
   onApeClick
 }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const handleImageLoad = (e) => {
+    setImageLoaded(true);
+    setImageError(false);
+    
     // Cache successful loads
     if (item.isMinted && item.imageUrl) {
       const cid = imageCids[item.id];
@@ -35,13 +40,14 @@ const NFTCell = memo(({
         return;
       }
     }
+    setImageError(true);
     e.target.src = '/placeholder.png';
   };
 
   return (
     <div 
       id={`nft-${item.id}`}
-      className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'} ${selectedTokenId === item.id ? 'selected' : ''} ${!matchesFilter ? 'filtered-out' : ''}`}
+      className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'} ${selectedTokenId === item.id ? 'selected' : ''} ${!matchesFilter ? 'filtered-out' : ''} ${imageLoaded ? 'loaded' : 'loading'}`}
       onClick={() => onApeClick(item)}
       title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - Original BAYC`}
       style={{
@@ -49,6 +55,17 @@ const NFTCell = memo(({
         height: `${zoom}px`,
       }}
     >
+      {/* Loading skeleton */}
+      {!imageLoaded && !imageError && (
+        <div 
+          className="image-skeleton"
+          style={{
+            width: `${zoom}px`,
+            height: `${zoom}px`,
+          }}
+        />
+      )}
+      
       <img 
         src={imageUrl}
         alt={`#${item.id}`}
@@ -58,6 +75,8 @@ const NFTCell = memo(({
           outline: 'none',
           width: `${zoom}px`,
           height: `${zoom}px`,
+          opacity: imageLoaded ? 1 : 0,
+          transition: 'opacity 0.2s ease-in-out'
         }}
         onLoad={handleImageLoad}
         onError={handleImageError}

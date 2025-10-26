@@ -65,6 +65,8 @@ function NFTGrid() {
   const [attributeFilters, setAttributeFilters] = useState({});
   const [availableAttributes, setAvailableAttributes] = useState({});
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isLoadingMode, setIsLoadingMode] = useState(false);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const gridRef = useRef(null);
 
   useEffect(() => {
@@ -193,17 +195,46 @@ function NFTGrid() {
     }
   };
 
-  const handleZoomChange = (newZoom) => {
-    setZoom(newZoom);
-  };
+  const handleZoomChange = useCallback((newZoom) => {
+    if (newZoom !== zoom) {
+      // Smooth zoom transition
+      setZoom(newZoom);
+    }
+  }, [zoom]);
 
-  const handleShowBayc = (show) => {
-    setShowBayc(show);
-  };
+  const handleShowBayc = useCallback(async (show) => {
+    if (show !== showBayc) {
+      setIsLoadingMode(true);
+      
+      // Small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setShowBayc(show);
+      
+      // Give React time to update and then hide loading
+      setTimeout(() => {
+        setIsLoadingMode(false);
+      }, 300);
+    }
+  }, [showBayc]);
 
-  const handleAttributeFilter = useCallback((filters) => {
-    setAttributeFilters(filters);
-  }, []);
+  const handleAttributeFilter = useCallback(async (filters) => {
+    if (JSON.stringify(filters) !== JSON.stringify(attributeFilters)) {
+      setIsApplyingFilters(true);
+      
+      // Small delay to show loading state for complex filters
+      if (Object.keys(filters).length > Object.keys(attributeFilters).length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      setAttributeFilters(filters);
+      
+      // Hide loading after React updates
+      setTimeout(() => {
+        setIsApplyingFilters(false);
+      }, 150);
+    }
+  }, [attributeFilters]);
 
   // Get current image URL based on settings (memoized)
   const getCurrentImageUrl = useCallback((item) => {
@@ -269,9 +300,14 @@ function NFTGrid() {
     return filteredItemsSet.has(item.id);
   }, [filteredItemsSet]);
 
-  // Calculate grid dimensions based on zoom
-  const gridSize = zoom === 16 ? 1600 : zoom === 32 ? 3200 : zoom === 48 ? 4800 : 6400;
-  const cellsPerRow = gridSize / zoom;
+  // Calculate grid dimensions based on zoom (memoized)
+  const { gridSize, cellsPerRow } = useMemo(() => {
+    const size = zoom === 16 ? 1600 : zoom === 32 ? 3200 : zoom === 48 ? 4800 : 6400;
+    return {
+      gridSize: size,
+      cellsPerRow: size / zoom
+    };
+  }, [zoom]);
 
   return (
     <>
@@ -321,6 +357,7 @@ function NFTGrid() {
         isMobile={isMobile}
       />
       
+      {/* Main loading overlay */}
       {loading && (
         <div className={`loading-overlay ${fadeOut ? 'fade-out' : ''}`}>
           <img src="/logo.png" alt="Logo" className="loading-logo" />
@@ -331,6 +368,28 @@ function NFTGrid() {
             />
           </div>
           <div className="progress-text">{progress}%</div>
+        </div>
+      )}
+
+      {/* Mode switch loading overlay */}
+      {isLoadingMode && (
+        <div className="mode-loading-overlay">
+          <div className="mode-loading-spinner">
+            <div className="spinner"></div>
+            <div className="loading-text">
+              {showBayc ? 'Loading Original BAYC...' : 'Loading AFA Mode...'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter loading overlay */}
+      {isApplyingFilters && (
+        <div className="filter-loading-overlay">
+          <div className="filter-loading-spinner">
+            <div className="spinner small"></div>
+            <div className="loading-text small">Applying filters...</div>
+          </div>
         </div>
       )}
     </>
