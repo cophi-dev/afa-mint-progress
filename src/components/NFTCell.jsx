@@ -95,7 +95,7 @@ const NFTCell = memo(({
   // Check if image is already cached to avoid showing loading state
   useEffect(() => {
     const cacheKey = showBayc ? `bayc_${item.id}` : `afa_${item.id}`;
-    const isPlaceholder = actualImageUrl === '/face.png';
+    const isPlaceholder = actualImageUrl === '/placeholder.png';
     if (imageCache.has(cacheKey) && !isPlaceholder) {
       setImageLoaded(true);
     }
