@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Box, 
   TextField, 
@@ -46,7 +46,7 @@ const ControlPanel = ({
     }
   };
 
-  const handleAttributeChange = (traitType, value) => {
+  const handleAttributeChange = useCallback((traitType, value) => {
     const newFilters = { ...selectedFilters };
     if (!newFilters[traitType]) {
       newFilters[traitType] = [];
@@ -62,13 +62,16 @@ const ControlPanel = ({
     }
     
     onAttributeFilter(newFilters);
-  };
+  }, [selectedFilters, onAttributeFilter]);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     onAttributeFilter({});
-  };
+  }, [onAttributeFilter]);
 
-  const hasActiveFilters = Object.keys(selectedFilters).length > 0;
+  const hasActiveFilters = useMemo(() => 
+    Object.keys(selectedFilters).length > 0, 
+    [selectedFilters]
+  );
 
   return (
     <Paper 
