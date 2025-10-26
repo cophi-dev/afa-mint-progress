@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
+import { PLACEHOLDER_DATA_URL } from '../constants/images';
 import './MintProgress.css';
 import imageCids from '../data/image_cids.json';
 
@@ -127,7 +128,7 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                       e.target.src = `https://ipfs.io/ipfs/${imageCids[mint.tokenId]}`;
                       return;
                     }
-                    e.target.src = '/placeholder.png';
+                    e.target.src = PLACEHOLDER_DATA_URL;
                   }}
                 />
                 <Typography 

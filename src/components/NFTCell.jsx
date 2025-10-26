@@ -1,6 +1,7 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import imageCids from '../data/image_cids.json';
 import { getBaycMetadata } from '../data/baycMetadata';
+import { PLACEHOLDER_DATA_URL } from '../constants/images';
 
 // Cache for successful loads
 const imageCache = new Map();
@@ -67,7 +68,7 @@ const NFTCell = memo(({
     setIsVisible(false);
     
     if (showBayc) {
-      setActualImageUrl('/placeholder.png');
+      setActualImageUrl(PLACEHOLDER_DATA_URL);
     } else {
       // Immediately set correct URL for AFA mode
       setActualImageUrl(imageUrl);
@@ -92,7 +93,7 @@ const NFTCell = memo(({
   // Check if image is already cached to avoid showing loading state
   useEffect(() => {
     const cacheKey = showBayc ? `bayc_${item.id}` : `afa_${item.id}`;
-    if (imageCache.has(cacheKey) && actualImageUrl !== '/placeholder.png') {
+    if (imageCache.has(cacheKey) && actualImageUrl !== PLACEHOLDER_DATA_URL) {
       setImageLoaded(true);
     }
   }, [actualImageUrl, showBayc, item.id]);
@@ -117,7 +118,7 @@ const NFTCell = memo(({
       }
     }
     setImageError(true);
-    e.target.src = '/placeholder.png';
+    e.target.src = PLACEHOLDER_DATA_URL;
   };
 
   return (

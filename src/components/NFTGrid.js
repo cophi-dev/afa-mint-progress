@@ -5,6 +5,7 @@ import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import NFTCell from './NFTCell';
 import { getBaycMetadata } from '../data/baycMetadata';
+import { PLACEHOLDER_DATA_URL } from '../constants/images';
 import './NFTGrid.css';
 import imageCids from '../data/image_cids.json';
 
@@ -77,7 +78,7 @@ class ImagePreloader {
         keys.push(`bayc_${item.id}`);
       } else {
         const afaUrl = getCurrentImageUrl(item);
-        if (afaUrl !== '/placeholder.png') {
+        if (afaUrl !== PLACEHOLDER_DATA_URL) {
           urls.push(afaUrl);
           keys.push(`afa_${item.id}`);
         }
@@ -174,7 +175,7 @@ function NFTGrid() {
   const getCurrentImageUrl = useCallback((item) => {
     if (showBayc) {
       // For BAYC mode, return placeholder initially and load via intersection observer
-      return '/placeholder.png';
+      return PLACEHOLDER_DATA_URL;
     }
     
     if (item.isMinted) {
@@ -182,7 +183,7 @@ function NFTGrid() {
       return getAfaImageUrl(item.id, false) || item.imageUrl;
     }
     
-    return '/placeholder.png';
+    return PLACEHOLDER_DATA_URL;
   }, [showBayc]);
 
   // Get BAYC image URL - now always use local 64px thumbnails
