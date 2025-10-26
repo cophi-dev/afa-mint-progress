@@ -283,6 +283,49 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Box>
             </Box>
 
+            {/* Attributes Section */}
+            {baycMetadata?.attributes && (
+              <Box>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    color: '#999',
+                    mb: 2,
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Attributes
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1,
+                }}>
+                  {baycMetadata.attributes.map((attr, index) => (
+                    <Chip
+                      key={index}
+                      label={`${attr.trait_type}: ${attr.value}`}
+                      variant="outlined"
+                      sx={{
+                        color: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        fontSize: '0.75rem',
+                        height: 'auto',
+                        '& .MuiChip-label': {
+                          padding: '4px 8px',
+                        },
+                        '&:hover': {
+                          borderColor: 'rgba(255, 255, 255, 0.6)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
             <Button
               variant="contained"
               startIcon={<LaunchIcon />}

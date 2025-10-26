@@ -104,10 +104,8 @@ function NFTGrid() {
   }, []);
 
   const handleApeClick = (item) => {
-    console.log('🚀 Clicked NFT:', item.id, 'Minted:', item.isMinted);
     setSelectedTokenId(item.id);
     const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true) : item.imageUrl;
-    console.log('🖼️ High-res URL:', highResUrl);
     setSelectedApe({
       tokenId: item.id,
       isMinted: item.isMinted,
@@ -135,6 +133,7 @@ function NFTGrid() {
                 src={item.isMinted ? item.imageUrl : '/placeholder.png'}
                 alt={`#${item.id}`}
                 loading="lazy"
+                style={{ border: 'none', outline: 'none' }}
                 onLoad={(e) => {
                   // Cache successful loads
                   if (item.isMinted && item.imageUrl) {
