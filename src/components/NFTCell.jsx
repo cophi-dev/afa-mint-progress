@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import imageCids from '../data/image_cids.json';
 import { getBaycMetadata } from '../data/baycMetadata';
-import { PLACEHOLDER_DATA_URL, PLACEHOLDER_CSS_CLASS } from '../constants/images';
+import { PLACEHOLDER_DATA_URL } from '../constants/images';
 
 // Cache for successful loads
 const imageCache = new Map();
@@ -81,23 +81,6 @@ const NFTCell = memo(({
     }
   }, [showBayc, imageUrl, item.isMinted]);
   
-  // Safari fallback check - if data URL doesn't load after a short time, use CSS styling
-  useEffect(() => {
-    if (actualImageUrl === PLACEHOLDER_DATA_URL && !imageLoaded && !imageError) {
-      const fallbackTimer = setTimeout(() => {
-        if (!imageLoaded && !imageError && cellRef.current) {
-          // Add CSS class to the image element for pure CSS placeholder
-          const img = cellRef.current.querySelector('img');
-          if (img) {
-            img.classList.add(PLACEHOLDER_CSS_CLASS);
-            setImageLoaded(true); // Mark as loaded since we're now using CSS
-          }
-        }
-      }, 100); // 100ms timeout for Safari compatibility
-      
-      return () => clearTimeout(fallbackTimer);
-    }
-  }, [actualImageUrl, imageLoaded, imageError]);
   const handleImageLoad = (e) => {
     setImageLoaded(true);
     setImageError(false);
@@ -137,13 +120,7 @@ const NFTCell = memo(({
       }
     }
     
-    // Use CSS fallback instead of file request - no more bottleneck!
-    if (e.target.src === PLACEHOLDER_DATA_URL && !e.target.dataset.triedCssFallback) {
-      e.target.dataset.triedCssFallback = 'true';
-      e.target.classList.add(PLACEHOLDER_CSS_CLASS);
-      setImageLoaded(true); // Mark as loaded since we're using CSS
-      return;
-    }
+    // Face.png data URL should work everywhere - no fallback needed
     
     setImageError(true);
   };

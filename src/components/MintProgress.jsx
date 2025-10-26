@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
-import { PLACEHOLDER_DATA_URL, PLACEHOLDER_CSS_CLASS } from '../constants/images';
+import { PLACEHOLDER_DATA_URL } from '../constants/images';
 import './MintProgress.css';
 import imageCids from '../data/image_cids.json';
 
@@ -129,13 +129,7 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                       return;
                     }
                     
-                    // Use CSS fallback instead of file request - no bottleneck!
-                    if (!e.target.dataset.triedCssFallback) {
-                      e.target.dataset.triedCssFallback = 'true';
-                      e.target.classList.add(PLACEHOLDER_CSS_CLASS);
-                      e.target.src = PLACEHOLDER_DATA_URL; // Set to data URL for consistent styling
-                      return;
-                    }
+                    // Face.png data URL should work everywhere - no fallback needed
                   }}
                 />
                 <Typography 
