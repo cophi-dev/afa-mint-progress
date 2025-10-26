@@ -1,6 +1,6 @@
 // Optimized placeholder image - uses actual image file instead of base64 data URL
 // This avoids performance bottlenecks when 10k cells reference the same base64 string
-// face.png is 64x64px which works perfectly for all zoom levels (16px - 64px+)
+// face.png works reliably, we'll optimize Safari mobile loading differently
 
 export const PLACEHOLDER_IMAGE_URL = '/face.png';
 

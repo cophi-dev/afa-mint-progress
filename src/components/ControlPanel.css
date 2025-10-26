@@ -3,10 +3,6 @@
   transition: all 0.3s ease-in-out;
 }
 
-.control-panel.mobile {
-  border-radius: 12px 12px 0 0 !important;
-}
-
 .control-panel.desktop {
   max-width: 320px;
 }
@@ -35,65 +31,39 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* Enhanced animations for mobile panel */
+/* Mobile optimizations */
 @media (max-width: 768px) {
-  .control-panel {
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .control-panel .MuiCollapse-root {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  
-  /* Subtle hover effects for mobile */
-  .control-panel .MuiIconButton-root:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
-  }
-  
-  /* Better focus states for accessibility */
-  .control-panel .MuiIconButton-root:focus-visible {
-    outline: 2px solid #4CAF50;
-    outline-offset: 2px;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .control-panel {
-    /* Better mobile positioning */
+  .control-panel.mobile {
+    border-radius: 16px 16px 0 0 !important;
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
     bottom: 0 !important;
-    /* Improved mobile shadows and styling */
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4) !important;
     border: none !important;
     border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
-    /* Better touch handling */
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-user-select: none;
     user-select: none;
-    /* Smooth animations */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
   
-  /* Larger touch targets for mobile */
+  /* Better touch targets for mobile */
   .control-panel .MuiIconButton-root {
     min-width: 48px !important;
     min-height: 48px !important;
     padding: 12px !important;
     border-radius: 8px !important;
+  }
+  
+  .control-panel .MuiIconButton-root:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Better text field for mobile */
+  .control-panel .MuiInputBase-root {
+    min-height: 56px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
   }
   
   /* Better slider for mobile */
@@ -108,16 +78,6 @@
     border: 2px solid #fff !important;
   }
   
-  /* Better text field for mobile */
-  .control-panel .MuiTextField-root {
-    margin-bottom: 16px !important;
-  }
-  
-  .control-panel .MuiInputBase-root {
-    min-height: 56px !important;
-    font-size: 16px !important;
-  }
-  
   /* Better switch for mobile */
   .control-panel .MuiSwitch-root {
     transform: scale(1.2) !important;
@@ -127,42 +87,34 @@
   .control-panel .MuiTypography-root {
     line-height: 1.4 !important;
   }
+  
+  /* Better focus states for accessibility */
+  .control-panel .MuiIconButton-root:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+  }
+  
+  .control-panel .MuiCollapse-root {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
 }
 
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Extra small screens */
 @media (max-width: 480px) {
-  .control-panel {
-    /* Full width on small screens */
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    /* Even more padding on small screens */
-    border-radius: 16px 16px 0 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Enhanced visual handle for mobile */
-  .control-panel::before {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-    z-index: 1;
-  }
-  
-  /* Extra large touch targets for small screens */
   .control-panel .MuiIconButton-root {
     min-width: 52px !important;
     min-height: 52px !important;
     padding: 14px !important;
-  }
-  
-  /* Better spacing for small screens */
-  .control-panel .MuiBox-root {
-    padding: 20px !important;
   }
 }

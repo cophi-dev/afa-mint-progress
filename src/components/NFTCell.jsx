@@ -153,13 +153,17 @@ const NFTCell = memo(({
         src={actualImageUrl}
         alt={`#${item.id}`}
         loading="lazy"
+        decoding="async"
         style={{ 
           border: 'none', 
           outline: 'none',
           width: `${zoom}px`,
           height: `${zoom}px`,
           opacity: imageLoaded ? 1 : 0,
-          transition: 'opacity 0.2s ease-in-out'
+          transition: 'opacity 0.2s ease-in-out',
+          imageRendering: 'crisp-edges',
+          WebkitUserSelect: 'none',
+          userSelect: 'none'
         }}
         onLoad={handleImageLoad}
         onError={handleImageError}
