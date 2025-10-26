@@ -63,7 +63,7 @@ html, body, #root {
 
 .nft-cell img {
   display: block;
-  image-rendering: pixelated;
+  image-rendering: auto; /* Use smooth rendering now that we have 64px images */
   transition: all 0.2s ease-in-out; /* Smooth transition for all changes */
   /* Optimize image loading and scrolling performance */
   will-change: transform;

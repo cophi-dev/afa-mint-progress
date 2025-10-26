@@ -55,25 +55,16 @@ class RequestQueue {
 const ipfsRequestQueue = new RequestQueue(20); // Limit to 20 concurrent IPFS requests
 
 const getAfaImageUrl = (tokenId, highRes = false) => {
-  const cid = imageCids[tokenId];
-  if (!cid) return null;
-  
-  // Check if we have it cached locally
-  const cacheKey = `${cid}_${highRes ? 'hires' : 'normal'}`;
-  if (imageCache.has(cacheKey)) {
-    return imageCache.get(cacheKey);
-  }
-  
+  // For modal views, use IPFS for full resolution
   if (highRes) {
-    // For high-res, use IPFS directly (full resolution)
-    return `https://ipfs.io/ipfs/${cid}`;
+    const cid = imageCids[tokenId];
+    if (cid) {
+      return `https://ipfs.io/ipfs/${cid}`;
+    }
   }
   
-  // For normal res, try local image first (much faster than IPFS)
-  const localImageUrl = `/images/${tokenId}.png`;
-  
-  // Return local image, with IPFS as fallback via error handling
-  return localImageUrl;
+  // Always use local 64px thumbnails - perfect at all zoom levels
+  return `/images/${tokenId}.png`;
 };
 
 function NFTGrid() {
@@ -132,7 +123,7 @@ function NFTGrid() {
               isMinted: true,
               owner: status.owner,
               mintDate: new Date(status.timestamp * 1000).toISOString(),
-              imageUrl: getAfaImageUrl(item.id) || item.imageUrl
+              imageUrl: getAfaImageUrl(item.id, false, true, zoom) || item.imageUrl
             };
           }
           return item;
@@ -166,9 +157,23 @@ function NFTGrid() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Update image URLs when zoom level changes (for minted items to get high-res at 64px)
+  useEffect(() => {
+    setItems(prevItems => prevItems.map(item => {
+      if (item.isMinted) {
+        const newImageUrl = getAfaImageUrl(item.id, false, true, zoom);
+        return {
+          ...item,
+          imageUrl: newImageUrl || item.imageUrl
+        };
+      }
+      return item;
+    }));
+  }, [zoom]);
+
   const handleApeClick = (item) => {
     setSelectedTokenId(item.id);
-    const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true) : item.imageUrl;
+    const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true, item.isMinted, zoom) : item.imageUrl;
     setSelectedApe({
       tokenId: item.id,
       isMinted: item.isMinted,
@@ -227,25 +232,35 @@ function NFTGrid() {
     }
     
     if (item.isMinted) {
-      return item.imageUrl;
+      // Always use local 64px thumbnails - perfect at all zoom levels!
+      return getAfaImageUrl(item.id, false) || item.imageUrl;
     }
     
     return '/placeholder.png';
   }, [showBayc]);
 
-  // Get BAYC image URL (separate function for lazy loading)
-  const getBaycImageUrl = useCallback((tokenId) => {
-    let metadata = metadataCache.get(tokenId);
-    if (!metadata) {
-      metadata = getBaycMetadata(tokenId);
-      if (metadata) {
-        metadataCache.set(tokenId, metadata);
+  // Get BAYC image URL - now always use local 64px thumbnails
+  const getBaycImageUrl = useCallback((tokenId, highRes = false) => {
+    // For modal views, use IPFS for full resolution
+    if (highRes) {
+      const metadata = getBaycMetadata(tokenId);
+      if (metadata?.image) {
+        const ipfsUrl = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        const cacheKey = `bayc_${tokenId}_hires`;
+        imageCache.set(cacheKey, ipfsUrl);
+        return ipfsUrl;
       }
     }
-    if (metadata?.image) {
-      return metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    
+    // Always use local 64px thumbnail - perfect at all zoom levels!
+    const localBaycUrl = `/bayc-images/${tokenId}.png`;
+    const cacheKey = `bayc_${tokenId}_thumb`;
+    if (imageCache.has(cacheKey)) {
+      return imageCache.get(cacheKey);
     }
-    return null;
+    
+    imageCache.set(cacheKey, localBaycUrl);
+    return localBaycUrl;
   }, []);
 
 

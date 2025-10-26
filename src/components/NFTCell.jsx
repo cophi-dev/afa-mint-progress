@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import imageCids from '../data/image_cids.json';
+import { getBaycMetadata } from '../data/baycMetadata';
 
 // Cache for successful loads
 const imageCache = new Map();
@@ -20,7 +21,7 @@ const NFTCell = memo(({
   const [isVisible, setIsVisible] = useState(false);
   const cellRef = useRef(null);
 
-  // Intersection Observer for lazy loading BAYC images
+  // Intersection Observer for INSTANT BAYC loading (now using local thumbnails!)
   useEffect(() => {
     if (!showBayc || !getBaycImageUrl) return;
 
@@ -29,17 +30,15 @@ const NFTCell = memo(({
         const [entry] = entries;
         if (entry.isIntersecting && !isVisible) {
           setIsVisible(true);
-          // Load BAYC image when visible, but use a small delay to batch requests
-          setTimeout(() => {
-            const baycUrl = getBaycImageUrl(item.id);
-            if (baycUrl) {
-              setActualImageUrl(baycUrl);
-            }
-          }, Math.random() * 200); // Random delay up to 200ms to spread out requests
+          // Load BAYC image with appropriate resolution
+          const baycUrl = getBaycImageUrl(item.id, false); // false = not explicitly high-res, let function decide based on zoom
+          if (baycUrl) {
+            setActualImageUrl(baycUrl);
+          }
         }
       },
       { 
-        rootMargin: '100px', // Start loading 100px before item is visible
+        rootMargin: '200px', // Start loading even earlier for smoother experience
         threshold: 0.1
       }
     );
@@ -55,7 +54,7 @@ const NFTCell = memo(({
     };
   }, [showBayc, getBaycImageUrl, item.id, isVisible]);
 
-  // Reset when switching modes
+  // Reset when switching modes or zoom changes
   useEffect(() => {
     if (showBayc) {
       setActualImageUrl('/placeholder.png');
@@ -82,8 +81,17 @@ const NFTCell = memo(({
   };
 
   const handleImageError = (e) => {
-    // If local image fails, try IPFS as fallback
-    if (item.isMinted && !e.target.dataset.triedIpfs) {
+    // Handle different fallback logic for BAYC vs AFA
+    if (showBayc && !e.target.dataset.triedIpfs) {
+      // For BAYC: fallback to IPFS if local thumbnail fails
+      const metadata = getBaycMetadata(item.id);
+      if (metadata?.image) {
+        e.target.dataset.triedIpfs = 'true';
+        e.target.src = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        return;
+      }
+    } else if (item.isMinted && !e.target.dataset.triedIpfs) {
+      // For AFA: try IPFS as fallback
       const cid = imageCids[item.id];
       if (cid) {
         e.target.dataset.triedIpfs = 'true';
