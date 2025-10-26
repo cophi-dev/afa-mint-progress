@@ -79,7 +79,7 @@ class ImagePreloader {
         } else {
           const afaUrl = getCurrentImageUrl(item);
           // Don't preload placeholder images as they're already cached by browser
-          if (afaUrl !== '/placeholder.png' && item.isMinted) {
+          if (afaUrl !== '/face.png' && item.isMinted) {
             urls.push(afaUrl);
             keys.push(`afa_${item.id}`);
           }
