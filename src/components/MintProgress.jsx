@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
-import { PLACEHOLDER_DATA_URL } from '../constants/images';
+// No longer need to import placeholder image constants - using local images directly
 import './MintProgress.css';
 import imageCids from '../data/image_cids.json';
 
@@ -185,7 +185,7 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                       return;
                     }
                     
-                    // Face.png data URL should work everywhere - no fallback needed
+                    // If both local and IPFS fail, the broken image will be handled by browser
                   }}
                 />
                 <Box sx={{ flex: 1, minWidth: 0 }}>

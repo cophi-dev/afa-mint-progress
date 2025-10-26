@@ -72,17 +72,18 @@ class ImagePreloader {
     
     for (let i = startIndex; i < Math.min(startIndex + count, items.length); i++) {
       const item = items[i];
-      if (showBayc) {
-        const baycUrl = getBaycImageUrl(item.id, false);
-        urls.push(baycUrl);
-        keys.push(`bayc_${item.id}`);
-      } else {
-        const afaUrl = getCurrentImageUrl(item);
-        if (afaUrl !== PLACEHOLDER_DATA_URL) {
-          urls.push(afaUrl);
-          keys.push(`afa_${item.id}`);
+        if (showBayc) {
+          const baycUrl = getBaycImageUrl(item.id, false);
+          urls.push(baycUrl);
+          keys.push(`bayc_${item.id}`);
+        } else {
+          const afaUrl = getCurrentImageUrl(item);
+          // Don't preload placeholder images as they're already cached by browser
+          if (afaUrl !== '/face.png' && item.isMinted) {
+            urls.push(afaUrl);
+            keys.push(`afa_${item.id}`);
+          }
         }
-      }
     }
     
     if (urls.length > 0) {

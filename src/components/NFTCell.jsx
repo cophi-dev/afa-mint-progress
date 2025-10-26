@@ -68,7 +68,7 @@ const NFTCell = memo(({
     setIsVisible(false);
     
     if (showBayc) {
-      // Try data URL first, but be ready for Safari fallback
+      // Use placeholder for BAYC mode
       setActualImageUrl(PLACEHOLDER_DATA_URL);
     } else {
       // Immediately set correct URL for AFA mode
@@ -95,7 +95,8 @@ const NFTCell = memo(({
   // Check if image is already cached to avoid showing loading state
   useEffect(() => {
     const cacheKey = showBayc ? `bayc_${item.id}` : `afa_${item.id}`;
-    if (imageCache.has(cacheKey) && actualImageUrl !== PLACEHOLDER_DATA_URL) {
+    const isPlaceholder = actualImageUrl === '/face.png';
+    if (imageCache.has(cacheKey) && !isPlaceholder) {
       setImageLoaded(true);
     }
   }, [actualImageUrl, showBayc, item.id]);
@@ -120,7 +121,7 @@ const NFTCell = memo(({
       }
     }
     
-    // Face.png data URL should work everywhere - no fallback needed
+    // If all fallbacks fail, show broken image handled by browser
     
     setImageError(true);
   };
