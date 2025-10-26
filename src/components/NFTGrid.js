@@ -11,7 +11,7 @@ const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
 const getAfaImageUrl = (tokenId) => {
   const cid = imageCids[tokenId];
   if (cid) {
-    return `https://${cid}.ipfs.nftstorage.link`;
+    return `https://ipfs.io/ipfs/${cid}`;
   }
   return null;
 };
