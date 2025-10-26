@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import imageCids from '../data/image_cids.json';
 
 // Cache for successful loads
@@ -10,10 +10,61 @@ const NFTCell = memo(({
   selectedTokenId,
   matchesFilter,
   imageUrl,
+  showBayc,
+  getBaycImageUrl,
   onApeClick
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [actualImageUrl, setActualImageUrl] = useState(imageUrl);
+  const [isVisible, setIsVisible] = useState(false);
+  const cellRef = useRef(null);
+
+  // Intersection Observer for lazy loading BAYC images
+  useEffect(() => {
+    if (!showBayc || !getBaycImageUrl) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !isVisible) {
+          setIsVisible(true);
+          // Load BAYC image when visible, but use a small delay to batch requests
+          setTimeout(() => {
+            const baycUrl = getBaycImageUrl(item.id);
+            if (baycUrl) {
+              setActualImageUrl(baycUrl);
+            }
+          }, Math.random() * 200); // Random delay up to 200ms to spread out requests
+        }
+      },
+      { 
+        rootMargin: '100px', // Start loading 100px before item is visible
+        threshold: 0.1
+      }
+    );
+
+    if (cellRef.current) {
+      observer.observe(cellRef.current);
+    }
+
+    return () => {
+      if (cellRef.current) {
+        observer.unobserve(cellRef.current);
+      }
+    };
+  }, [showBayc, getBaycImageUrl, item.id, isVisible]);
+
+  // Reset when switching modes
+  useEffect(() => {
+    if (showBayc) {
+      setActualImageUrl('/placeholder.png');
+      setImageLoaded(false);
+      setIsVisible(false);
+    } else {
+      setActualImageUrl(imageUrl);
+    }
+  }, [showBayc, imageUrl]);
   const handleImageLoad = (e) => {
     setImageLoaded(true);
     setImageError(false);
@@ -46,6 +97,7 @@ const NFTCell = memo(({
 
   return (
     <div 
+      ref={cellRef}
       id={`nft-${item.id}`}
       className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'} ${selectedTokenId === item.id ? 'selected' : ''} ${!matchesFilter ? 'filtered-out' : ''} ${imageLoaded ? 'loaded' : 'loading'}`}
       onClick={() => onApeClick(item)}
@@ -67,7 +119,7 @@ const NFTCell = memo(({
       )}
       
       <img 
-        src={imageUrl}
+        src={actualImageUrl}
         alt={`#${item.id}`}
         loading="lazy"
         style={{ 

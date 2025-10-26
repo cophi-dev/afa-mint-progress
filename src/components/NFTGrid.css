@@ -302,6 +302,12 @@ div.nft-cell:hover > img {
   display: none;
 }
 
+/* BAYC loading improvements */
+.nft-cell.loading .image-skeleton {
+  /* Slower shimmer for BAYC loading */
+  animation: shimmer 2s ease-in-out infinite;
+}
+
 /* Mobile Styles */
 @media (max-width: 480px) {
   .nft-grid-wrapper {

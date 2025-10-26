@@ -17,6 +17,43 @@ const imageCache = new Map();
 // Cache for BAYC metadata to avoid repeated lookups
 const metadataCache = new Map();
 
+// Request queue to limit concurrent IPFS requests
+class RequestQueue {
+  constructor(maxConcurrent = 20) {
+    this.maxConcurrent = maxConcurrent;
+    this.currentRequests = 0;
+    this.queue = [];
+  }
+
+  async add(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ requestFn, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.currentRequests >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+
+    this.currentRequests++;
+    const { requestFn, resolve, reject } = this.queue.shift();
+
+    try {
+      const result = await requestFn();
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    } finally {
+      this.currentRequests--;
+      this.processQueue();
+    }
+  }
+}
+
+const ipfsRequestQueue = new RequestQueue(20); // Limit to 20 concurrent IPFS requests
+
 const getAfaImageUrl = (tokenId, highRes = false) => {
   const cid = imageCids[tokenId];
   if (!cid) return null;
@@ -239,16 +276,8 @@ function NFTGrid() {
   // Get current image URL based on settings (memoized)
   const getCurrentImageUrl = useCallback((item) => {
     if (showBayc) {
-      let metadata = metadataCache.get(item.id);
-      if (!metadata) {
-        metadata = getBaycMetadata(item.id);
-        if (metadata) {
-          metadataCache.set(item.id, metadata);
-        }
-      }
-      if (metadata?.image) {
-        return metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
-      }
+      // For BAYC mode, return placeholder initially and load via intersection observer
+      return '/placeholder.png';
     }
     
     if (item.isMinted) {
@@ -257,6 +286,21 @@ function NFTGrid() {
     
     return '/placeholder.png';
   }, [showBayc]);
+
+  // Get BAYC image URL (separate function for lazy loading)
+  const getBaycImageUrl = useCallback((tokenId) => {
+    let metadata = metadataCache.get(tokenId);
+    if (!metadata) {
+      metadata = getBaycMetadata(tokenId);
+      if (metadata) {
+        metadataCache.set(tokenId, metadata);
+      }
+    }
+    if (metadata?.image) {
+      return metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    }
+    return null;
+  }, []);
 
   // Pre-calculate filtered items (memoized for performance)
   const filteredItemsSet = useMemo(() => {
@@ -328,6 +372,8 @@ function NFTGrid() {
               selectedTokenId={selectedTokenId}
               matchesFilter={itemMatchesFilters(item)}
               imageUrl={getCurrentImageUrl(item)}
+              showBayc={showBayc}
+              getBaycImageUrl={getBaycImageUrl}
               onApeClick={handleApeClick}
             />
           ))}
