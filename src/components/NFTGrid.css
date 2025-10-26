@@ -23,6 +23,16 @@ html, body, #root {
   bottom: 0; /* No bottom spacing on desktop */
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  /* Smooth scrolling improvements */
+  scroll-behavior: smooth;
+  /* Performance optimizations */
+  contain: layout style paint;
+  will-change: scroll-position;
+  /* Better momentum scrolling */
+  overscroll-behavior: contain;
+  /* Hardware acceleration for smoother scrolling */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Grid */
@@ -33,6 +43,10 @@ html, body, #root {
   width: 1600px;
   height: 1600px;
   background: #282c34;
+  /* Performance optimizations for grid */
+  contain: layout style;
+  /* Smooth rendering */
+  will-change: auto;
 }
 
 /* NFT Items */
@@ -40,6 +54,8 @@ html, body, #root {
   width: 16px;
   height: 16px;
   position: relative;
+  /* Optimize for smooth scrolling */
+  contain: layout style paint;
 }
 
 .nft-cell img {
@@ -48,9 +64,11 @@ html, body, #root {
   display: block;
   image-rendering: pixelated;
   transition: all 0.2s ease-in-out; /* Smooth transition for all changes */
-  /* Optimize image loading */
+  /* Optimize image loading and scrolling performance */
   will-change: transform;
   backface-visibility: hidden;
+  /* Improve rendering during scroll */
+  transform: translateZ(0);
 }
 
 /* States */
@@ -74,11 +92,21 @@ html, body, #root {
   position: relative;
   z-index: 1000;
   transition: all 0.2s ease-in-out;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 /* Specific hover for unminted */
 .unminted:hover img {
   opacity: 0.8;
+}
+
+/* Selected item styling */
+.nft-cell.selected img {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 /* Loading Screen */
@@ -188,6 +216,16 @@ html, body, #root {
   transform-origin: center;
   position: relative;
   z-index: 1000;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* Selected styling for virtual hover too */
+.virtual-hover.selected img {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 .virtual-hover.unminted img {
