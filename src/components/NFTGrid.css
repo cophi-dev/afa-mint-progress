@@ -33,6 +33,10 @@ html, body, #root {
   /* Hardware acceleration for smoother scrolling */
   transform: translateZ(0);
   backface-visibility: hidden;
+  /* Prevent horizontal scrolling */
+  overflow-x: hidden;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* Grid */
@@ -45,6 +49,8 @@ html, body, #root {
   /* Smooth rendering */
   will-change: auto;
   /* Grid dimensions are now dynamic via inline styles */
+  /* Ensure grid doesn't overflow horizontally */
+  max-width: 100%;
 }
 
 /* NFT Items */

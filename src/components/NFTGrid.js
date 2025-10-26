@@ -99,11 +99,9 @@ function NFTGrid() {
   // New control panel state
   const [zoom, setZoom] = useState(16);
   const [showBayc, setShowBayc] = useState(false);
-  const [attributeFilters, setAttributeFilters] = useState({});
-  const [availableAttributes, setAvailableAttributes] = useState({});
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isLoadingMode, setIsLoadingMode] = useState(false);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const gridRef = useRef(null);
 
   useEffect(() => {
@@ -156,47 +154,12 @@ function NFTGrid() {
     fetchMintedStatus();
   }, []);
 
-  // Process BAYC metadata for attribute filters (memoized)
-  const availableAttributesMemo = useMemo(() => {
-    const attributes = {};
-    
-    // Process first 1000 tokens to get available attributes
-    for (let i = 0; i < 1000; i++) {
-      let metadata = metadataCache.get(i);
-      if (!metadata) {
-        metadata = getBaycMetadata(i);
-        if (metadata) {
-          metadataCache.set(i, metadata);
-        }
-      }
-      
-      if (metadata?.attributes) {
-        metadata.attributes.forEach(attr => {
-          if (!attributes[attr.trait_type]) {
-            attributes[attr.trait_type] = new Set();
-          }
-          attributes[attr.trait_type].add(attr.value);
-        });
-      }
-    }
-    
-    // Convert Sets to Arrays and sort
-    const processedAttributes = {};
-    Object.keys(attributes).forEach(traitType => {
-      processedAttributes[traitType] = Array.from(attributes[traitType]).sort();
-    });
-    
-    return processedAttributes;
-  }, []);
 
-  useEffect(() => {
-    setAvailableAttributes(availableAttributesMemo);
-  }, [availableAttributesMemo]);
-
-  // Handle window resize for mobile detection
+  // Handle window resize for mobile detection and screen width
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
+      setScreenWidth(window.innerWidth);
     };
 
     window.addEventListener('resize', handleResize);
@@ -255,23 +218,6 @@ function NFTGrid() {
     }
   }, [showBayc]);
 
-  const handleAttributeFilter = useCallback(async (filters) => {
-    if (JSON.stringify(filters) !== JSON.stringify(attributeFilters)) {
-      setIsApplyingFilters(true);
-      
-      // Small delay to show loading state for complex filters
-      if (Object.keys(filters).length > Object.keys(attributeFilters).length) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      
-      setAttributeFilters(filters);
-      
-      // Hide loading after React updates
-      setTimeout(() => {
-        setIsApplyingFilters(false);
-      }, 150);
-    }
-  }, [attributeFilters]);
 
   // Get current image URL based on settings (memoized)
   const getCurrentImageUrl = useCallback((item) => {
@@ -302,56 +248,30 @@ function NFTGrid() {
     return null;
   }, []);
 
-  // Pre-calculate filtered items (memoized for performance)
-  const filteredItemsSet = useMemo(() => {
-    if (Object.keys(attributeFilters).length === 0) {
-      return null; // No filters, show all
-    }
-    
-    const matchingIds = new Set();
-    
-    for (let i = 0; i < 10000; i++) {
-      let metadata = metadataCache.get(i);
-      if (!metadata) {
-        metadata = getBaycMetadata(i);
-        if (metadata) {
-          metadataCache.set(i, metadata);
-        }
-      }
-      
-      if (!metadata?.attributes) continue;
-      
-      let matches = true;
-      for (const [traitType, selectedValues] of Object.entries(attributeFilters)) {
-        const itemAttribute = metadata.attributes.find(attr => attr.trait_type === traitType);
-        if (!itemAttribute || !selectedValues.includes(itemAttribute.value)) {
-          matches = false;
-          break;
-        }
-      }
-      
-      if (matches) {
-        matchingIds.add(i);
-      }
-    }
-    
-    return matchingIds;
-  }, [attributeFilters]);
 
-  // Fast filter check function
-  const itemMatchesFilters = useCallback((item) => {
-    if (!filteredItemsSet) return true; // No filters active
-    return filteredItemsSet.has(item.id);
-  }, [filteredItemsSet]);
-
-  // Calculate grid dimensions based on zoom (memoized)
-  const { gridSize, cellsPerRow } = useMemo(() => {
-    const size = zoom === 16 ? 1600 : zoom === 32 ? 3200 : zoom === 48 ? 4800 : 6400;
+  // Calculate grid dimensions based on screen width and zoom (memoized)
+  const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
+    // Use available screen width (minus some padding)
+    const availableWidth = screenWidth - 40; // 20px padding on each side
+    
+    // Calculate how many cells can fit in the available width
+    const maxCellsPerRow = Math.floor(availableWidth / zoom);
+    
+    // Make sure we don't exceed 100 cells per row (since original BAYC is 100x100)
+    const cellsPerRow = Math.min(maxCellsPerRow, 100);
+    
+    // Calculate actual grid width to center it
+    const actualGridWidth = cellsPerRow * zoom;
+    
+    // Calculate total rows needed for 10,000 items
+    const totalRows = Math.ceil(10000 / cellsPerRow);
+    
     return {
-      gridSize: size,
-      cellsPerRow: size / zoom
+      gridWidth: actualGridWidth,
+      cellsPerRow,
+      totalRows
     };
-  }, [zoom]);
+  }, [zoom, screenWidth]);
 
   return (
     <>
@@ -360,8 +280,9 @@ function NFTGrid() {
           className="nft-grid"
           style={{
             gridTemplateColumns: `repeat(${cellsPerRow}, ${zoom}px)`,
-            width: `${gridSize}px`,
-            height: `${gridSize}px`,
+            width: `${gridWidth}px`,
+            height: `${totalRows * zoom}px`,
+            margin: '0 auto', // Center the grid
           }}
         >
           {items.map(item => (
@@ -370,7 +291,7 @@ function NFTGrid() {
               item={item}
               zoom={zoom}
               selectedTokenId={selectedTokenId}
-              matchesFilter={itemMatchesFilters(item)}
+              matchesFilter={true}
               imageUrl={getCurrentImageUrl(item)}
               showBayc={showBayc}
               getBaycImageUrl={getBaycImageUrl}
@@ -395,11 +316,8 @@ function NFTGrid() {
         onTokenSearch={handleTokenSearch}
         onZoomChange={handleZoomChange}
         onShowBayc={handleShowBayc}
-        onAttributeFilter={handleAttributeFilter}
         zoom={zoom}
         showBayc={showBayc}
-        availableAttributes={availableAttributes}
-        selectedFilters={attributeFilters}
         isMobile={isMobile}
       />
       
@@ -429,15 +347,6 @@ function NFTGrid() {
         </div>
       )}
 
-      {/* Filter loading overlay */}
-      {isApplyingFilters && (
-        <div className="filter-loading-overlay">
-          <div className="filter-loading-spinner">
-            <div className="spinner small"></div>
-            <div className="loading-text small">Applying filters...</div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

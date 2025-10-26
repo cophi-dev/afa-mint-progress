@@ -3,12 +3,6 @@ import {
   Box, 
   TextField, 
   Slider, 
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Button,
   Switch,
   FormControlLabel,
   Paper,
@@ -17,7 +11,6 @@ import {
   Collapse
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -28,11 +21,8 @@ const ControlPanel = ({
   onTokenSearch,
   onZoomChange,
   onShowBayc,
-  onAttributeFilter,
   zoom = 16,
   showBayc = false,
-  availableAttributes = {},
-  selectedFilters = {},
   isMobile = false
 }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -46,32 +36,6 @@ const ControlPanel = ({
     }
   };
 
-  const handleAttributeChange = useCallback((traitType, value) => {
-    const newFilters = { ...selectedFilters };
-    if (!newFilters[traitType]) {
-      newFilters[traitType] = [];
-    }
-    
-    if (newFilters[traitType].includes(value)) {
-      newFilters[traitType] = newFilters[traitType].filter(v => v !== value);
-      if (newFilters[traitType].length === 0) {
-        delete newFilters[traitType];
-      }
-    } else {
-      newFilters[traitType].push(value);
-    }
-    
-    onAttributeFilter(newFilters);
-  }, [selectedFilters, onAttributeFilter]);
-
-  const clearAllFilters = useCallback(() => {
-    onAttributeFilter({});
-  }, [onAttributeFilter]);
-
-  const hasActiveFilters = useMemo(() => 
-    Object.keys(selectedFilters).length > 0, 
-    [selectedFilters]
-  );
 
   return (
     <Paper 
@@ -94,7 +58,7 @@ const ControlPanel = ({
       <Box sx={{ p: 2 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <FilterListIcon sx={{ color: '#fff', mr: 1 }} />
+          <ZoomInIcon sx={{ color: '#fff', mr: 1 }} />
           <Typography variant="h6" sx={{ color: '#fff', flexGrow: 1 }}>
             Controls
           </Typography>
@@ -207,103 +171,6 @@ const ControlPanel = ({
             />
           </Box>
 
-          {/* Attribute Filters */}
-          {Object.keys(availableAttributes).length > 0 && (
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ color: '#999' }}>
-                  Filter by Attributes
-                </Typography>
-                {hasActiveFilters && (
-                  <Button
-                    size="small"
-                    onClick={clearAllFilters}
-                    sx={{ 
-                      color: '#ff6b6b',
-                      fontSize: '0.75rem',
-                      minWidth: 'auto',
-                      p: 0.5,
-                    }}
-                  >
-                    Clear All
-                  </Button>
-                )}
-              </Box>
-
-              {Object.entries(availableAttributes).map(([traitType, values]) => (
-                <Box key={traitType} sx={{ mb: 2 }}>
-                  <Typography variant="caption" sx={{ color: '#bbb', mb: 1, display: 'block' }}>
-                    {traitType}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {values.slice(0, 8).map((value) => {
-                      const isSelected = selectedFilters[traitType]?.includes(value);
-                      return (
-                        <Chip
-                          key={value}
-                          label={value}
-                          size="small"
-                          clickable
-                          onClick={() => handleAttributeChange(traitType, value)}
-                          sx={{
-                            bgcolor: isSelected ? '#4CAF50' : 'rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            fontSize: '0.7rem',
-                            height: 24,
-                            '&:hover': {
-                              bgcolor: isSelected ? '#45a049' : 'rgba(255, 255, 255, 0.2)',
-                            },
-                          }}
-                        />
-                      );
-                    })}
-                    {values.length > 8 && (
-                      <Chip
-                        label={`+${values.length - 8} more`}
-                        size="small"
-                        sx={{
-                          bgcolor: 'rgba(255, 255, 255, 0.05)',
-                          color: '#999',
-                          fontSize: '0.7rem',
-                          height: 24,
-                        }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {hasActiveFilters && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" sx={{ color: '#999', mb: 1, display: 'block' }}>
-                Active Filters ({Object.values(selectedFilters).flat().length})
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {Object.entries(selectedFilters).map(([traitType, values]) =>
-                  values.map((value) => (
-                    <Chip
-                      key={`${traitType}-${value}`}
-                      label={`${traitType}: ${value}`}
-                      size="small"
-                      onDelete={() => handleAttributeChange(traitType, value)}
-                      sx={{
-                        bgcolor: '#4CAF50',
-                        color: '#fff',
-                        fontSize: '0.65rem',
-                        height: 22,
-                        '& .MuiChip-deleteIcon': {
-                          color: '#fff',
-                          fontSize: '0.875rem',
-                        },
-                      }}
-                    />
-                  ))
-                )}
-              </Box>
-            </Box>
-          )}
         </Collapse>
       </Box>
     </Paper>
