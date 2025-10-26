@@ -2,15 +2,16 @@
   position: fixed;
   bottom: 20px;
   left: 20px;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(10, 10, 10, 0.95);
   padding: 16px;
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
   width: 360px;
   user-select: none;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .mint-progress.collapsed {
@@ -22,38 +23,44 @@
   cursor: move;
 }
 
-@media (max-width: 480px) {
-  .mint-progress {
+@media (max-width: 768px) {
+  .mint-progress.mobile {
     position: fixed !important;
     transform: none !important;
-    width: 100%;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 16px 12px;
-    border-radius: 12px 12px 0 0;
-    /* Better mobile shadows */
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding: 20px 16px !important;
+    border-radius: 16px 16px 0 0 !important;
+    /* Enhanced mobile shadows */
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4) !important;
+    border: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
     /* Prevent accidental dragging on mobile */
     -webkit-user-select: none;
     user-select: none;
+    /* Smooth animations */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    /* Slide up animation */
+    animation: slideUpMint 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .mint-progress.collapsed {
-    padding: 12px;
+  .mint-progress.mobile.collapsed {
+    padding: 16px !important;
     /* Smaller collapsed state on mobile */
-    border-radius: 12px 12px 0 0;
+    border-radius: 16px 16px 0 0 !important;
   }
 
-  .drag-handle {
+  .mint-progress.mobile .drag-handle {
     cursor: default;
     /* Better touch target */
-    padding: 8px 0;
+    padding: 12px 0;
     position: relative;
   }
   
-  /* Add a visual handle indicator */
-  .drag-handle::before {
+  /* Enhanced visual handle indicator for mobile */
+  .mint-progress.mobile .drag-handle::before {
     content: '';
     position: absolute;
     top: 0;
@@ -63,5 +70,59 @@
     height: 4px;
     background: rgba(255, 255, 255, 0.3);
     border-radius: 2px;
+  }
+  
+  /* Better touch targets for mobile */
+  .mint-progress.mobile .MuiIconButton-root {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Better spacing for mobile mint entries */
+  .mint-progress.mobile .mint-entry {
+    min-height: 64px !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+  
+  /* Better typography for mobile */
+  .mint-progress.mobile .MuiTypography-root {
+    line-height: 1.4 !important;
+  }
+  
+  /* Enhanced animations */
+  .mint-progress.mobile .MuiCollapse-root {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* Subtle touch feedback */
+  .mint-progress.mobile .MuiIconButton-root:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Better focus states for accessibility */
+  .mint-progress.mobile .MuiIconButton-root:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+  }
+  
+  /* Enhanced mint entry interactions */
+  .mint-progress.mobile .mint-entry:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+@keyframes slideUpMint {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
