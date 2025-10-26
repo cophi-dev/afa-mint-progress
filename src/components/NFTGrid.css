@@ -65,7 +65,15 @@ html, body, #root {
   /* Width and height are now dynamic via inline styles */
 }
 
-/* Placeholder styling - for face.png data URL placeholder */
+/* Placeholder styling - for face.png placeholder */
+.nft-cell img[src="/face.png"] {
+  /* Face.png placeholder styling */
+  border-radius: 6px;
+  border: 1px solid rgba(102, 102, 119, 0.3);
+  opacity: 1 !important; /* Ensure face.png is always visible */
+}
+
+/* Legacy placeholder styling - for data URL placeholders */
 .nft-cell img[src*="data:image/png;base64"] {
   /* Face.png already has its own styling, just add subtle border */
   border-radius: 6px;
@@ -79,8 +87,13 @@ html, body, #root {
 }
 
 .unminted {
-  opacity: 0.3;
+  opacity: 0.6; /* Increased opacity so placeholders are more visible */
   transition: opacity 0.2s ease-in-out;
+}
+
+/* Ensure placeholder images in unminted cells are visible */
+.unminted img[src="/face.png"] {
+  opacity: 1 !important; /* Face.png should always be fully visible */
 }
 
 /* Hover Effects - Multiple selectors for debugging */

@@ -132,7 +132,7 @@ const NFTCell = memo(({
       id={`nft-${item.id}`}
       className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'} ${selectedTokenId === item.id ? 'selected' : ''} ${!matchesFilter ? 'filtered-out' : ''} ${imageLoaded ? 'loaded' : 'loading'}`}
       onClick={() => onApeClick(item)}
-      title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - Original BAYC`}
+      title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - URL: ${actualImageUrl}`}
       style={{
         width: `${zoom}px`,
         height: `${zoom}px`,
