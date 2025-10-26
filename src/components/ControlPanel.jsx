@@ -28,17 +28,17 @@ const ControlPanel = ({
   isMobile = false
 }) => {
   const [searchValue, setSearchValue] = useState('');
-  const [filtersExpanded, setFiltersExpanded] = useState(!isMobile);
-  const [isMinimized, setIsMinimized] = useState(isMobile); // Auto-minimize on mobile initially
+  const [isExpanded, setIsExpanded] = useState(!isMobile); // Simple: expanded or collapsed
+  const [isMinimized, setIsMinimized] = useState(false); // Only for desktop
 
   // Auto-adjust states when mobile changes
   useEffect(() => {
     if (isMobile) {
-      setIsMinimized(false); // Show full panel on mobile
-      setFiltersExpanded(false); // Start collapsed on mobile
+      setIsMinimized(false); // Never minimize on mobile
+      setIsExpanded(false); // Start collapsed on mobile for better UX
     } else {
-      setIsMinimized(false); // Show full panel on desktop
-      setFiltersExpanded(true); // Start expanded on desktop
+      setIsMinimized(false); // Start expanded on desktop
+      setIsExpanded(true); // Start expanded on desktop
     }
   }, [isMobile]);
 
@@ -62,16 +62,18 @@ const ControlPanel = ({
         right: isMobile ? 0 : 20,
         left: isMobile ? 0 : 'auto',
         width: isMinimized ? 'auto' : (isMobile ? '100%' : 320),
-        maxHeight: isMobile ? '60vh' : '80vh',
+        maxHeight: isMobile ? '50vh' : '80vh',
         overflow: 'auto',
         bgcolor: 'rgba(20, 20, 20, 0.98)',
         backdropFilter: 'blur(20px)',
         border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
         borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
-        zIndex: 1500,
+        zIndex: 1600, // Higher than MintProgress to ensure it's on top
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        borderRadius: isMobile ? '16px 16px 0 0' : '12px',
+        borderRadius: isMobile ? '20px 20px 0 0' : '12px',
         boxShadow: isMobile ? '0 -8px 32px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.3)',
+        // Add padding bottom on mobile to avoid conflicts
+        paddingBottom: isMobile ? 'env(safe-area-inset-bottom)' : 0,
       }}
     >
       <Box sx={{ p: isMinimized ? 1 : (isMobile ? 3 : 2) }}>
@@ -131,9 +133,9 @@ const ControlPanel = ({
             )}
             
             {/* Mobile expand/collapse button */}
-            {isMobile && !isMinimized && (
+            {isMobile && (
               <IconButton 
-                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                onClick={() => setIsExpanded(!isExpanded)}
                 sx={{ 
                   color: '#999',
                   '&:hover': { 
@@ -147,19 +149,19 @@ const ControlPanel = ({
                 }}
                 size="large"
               >
-                {filtersExpanded ? <ExpandLessIcon sx={{ fontSize: '24px' }} /> : <ExpandMoreIcon sx={{ fontSize: '24px' }} />}
+                {isExpanded ? <ExpandLessIcon sx={{ fontSize: '24px' }} /> : <ExpandMoreIcon sx={{ fontSize: '24px' }} />}
               </IconButton>
             )}
           </Box>
         </Box>
 
         {/* Collapsed state indicator for mobile */}
-        {isMobile && !filtersExpanded && (
+        {isMobile && !isExpanded && (
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            py: 2,
+            py: 1,
             color: '#666',
             fontSize: '14px'
           }}>
@@ -169,7 +171,7 @@ const ControlPanel = ({
           </Box>
         )}
 
-        <Collapse in={isMobile ? filtersExpanded : !isMinimized}>
+        <Collapse in={isMobile ? isExpanded : !isMinimized}>
           {/* Token Search */}
           <Box sx={{ mb: isMobile ? 4 : 3 }}>
             <Typography 

@@ -16,17 +16,12 @@ const MintProgress = ({ mintedCount, latestMints }) => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      // Auto-collapse on mobile, auto-expand on desktop
-      if (mobile && !isCollapsed) {
-        setIsCollapsed(true);
-      } else if (!mobile && isCollapsed) {
-        setIsCollapsed(false);
-      }
+      // Keep current state on resize, don't force changes
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isCollapsed]);
+  }, []);
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
