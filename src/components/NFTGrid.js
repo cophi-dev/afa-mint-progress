@@ -8,29 +8,23 @@ import imageCids from '../data/image_cids.json';
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
 
-// Multiple IPFS gateways ordered by performance
-const IPFS_GATEWAYS = [
-  'https://cloudflare-ipfs.com/ipfs',     // Cloudflare - usually fastest
-  'https://dweb.link/ipfs',               // Protocol Labs - reliable
-  'https://ipfs.io/ipfs',                 // Original - fallback
-  'https://gateway.pinata.cloud/ipfs'     // Pinata - good for pinned content
-];
-
-// Cache for gateway performance
-const gatewayPerformance = new Map();
+// Simple local cache for images
+const imageCache = new Map();
 
 const getAfaImageUrl = (tokenId) => {
   const cid = imageCids[tokenId];
   if (!cid) return null;
   
-  // Return fastest known gateway, or first one as default
-  const sortedGateways = IPFS_GATEWAYS.sort((a, b) => {
-    const aPerf = gatewayPerformance.get(a) || 1000;
-    const bPerf = gatewayPerformance.get(b) || 1000;
-    return aPerf - bPerf;
-  });
+  // Check if we have it cached locally
+  if (imageCache.has(cid)) {
+    return imageCache.get(cid);
+  }
   
-  return `${sortedGateways[0]}/${cid}`;
+  // Try local image first (much faster than IPFS)
+  const localImageUrl = `/images/${tokenId}.png`;
+  
+  // For now return local image, with IPFS as fallback via error handling
+  return localImageUrl;
 };
 
 function NFTGrid() {
@@ -131,34 +125,22 @@ function NFTGrid() {
                 alt={`#${item.id}`}
                 loading="lazy"
                 onLoad={(e) => {
-                  // Track successful loads for gateway performance
+                  // Cache successful loads
                   if (item.isMinted && item.imageUrl) {
-                    const gateway = IPFS_GATEWAYS.find(g => item.imageUrl.startsWith(g));
-                    if (gateway) {
-                      const currentPerf = gatewayPerformance.get(gateway) || 1000;
-                      gatewayPerformance.set(gateway, Math.max(50, currentPerf - 50)); // Improve score
+                    const cid = imageCids[item.id];
+                    if (cid && !imageCache.has(cid)) {
+                      imageCache.set(cid, item.imageUrl);
                     }
                   }
                 }}
                 onError={(e) => {
-                  // Track failed loads and try next gateway
-                  if (item.isMinted && item.imageUrl && !e.target.dataset.retryCount) {
-                    const currentGateway = IPFS_GATEWAYS.find(g => item.imageUrl.startsWith(g));
-                    if (currentGateway) {
-                      // Mark this gateway as slower
-                      const currentPerf = gatewayPerformance.get(currentGateway) || 1000;
-                      gatewayPerformance.set(currentGateway, currentPerf + 200);
-                      
-                      // Try next gateway
-                      const currentIndex = IPFS_GATEWAYS.indexOf(currentGateway);
-                      const nextIndex = (currentIndex + 1) % IPFS_GATEWAYS.length;
-                      const cid = imageCids[item.id];
-                      
-                      if (cid && nextIndex !== currentIndex) {
-                        e.target.dataset.retryCount = '1';
-                        e.target.src = `${IPFS_GATEWAYS[nextIndex]}/${cid}`;
-                        return;
-                      }
+                  // If local image fails, try IPFS as fallback
+                  if (item.isMinted && !e.target.dataset.triedIpfs) {
+                    const cid = imageCids[item.id];
+                    if (cid) {
+                      e.target.dataset.triedIpfs = 'true';
+                      e.target.src = `https://ipfs.io/ipfs/${cid}`;
+                      return;
                     }
                   }
                   e.target.src = '/placeholder.png';
@@ -176,19 +158,6 @@ function NFTGrid() {
       />
 
       <MintProgress mintedCount={mintedCount} latestMints={latestMints} />
-      
-      {/* Preload images for latest mints to improve perceived performance */}
-      {latestMints.slice(0, 10).map(mint => {
-        const imageUrl = getAfaImageUrl(mint.tokenId);
-        return imageUrl ? (
-          <link 
-            key={`preload-${mint.tokenId}`}
-            rel="preload" 
-            as="image" 
-            href={imageUrl}
-          />
-        ) : null;
-      })}
       
       {loading && (
         <div className={`loading-overlay ${fadeOut ? 'fade-out' : ''}`}>

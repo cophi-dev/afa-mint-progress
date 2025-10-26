@@ -88,7 +88,7 @@ const MintProgress = ({ mintedCount, latestMints }) => {
           >
             <Box 
               component="img"
-              src={`https://${imageCids[mint.tokenId]}.ipfs.nftstorage.link`}
+              src={`/images/${mint.tokenId}.png`}
               alt={`AFA #${mint.tokenId}`}
               sx={{
                 width: 36,
@@ -98,6 +98,12 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                 flexShrink: 0
               }}
               onError={(e) => {
+                // If local image fails, try IPFS as fallback
+                if (!e.target.dataset.triedIpfs && imageCids[mint.tokenId]) {
+                  e.target.dataset.triedIpfs = 'true';
+                  e.target.src = `https://ipfs.io/ipfs/${imageCids[mint.tokenId]}`;
+                  return;
+                }
                 e.target.src = '/placeholder.png';
               }}
             />

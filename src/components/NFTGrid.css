@@ -74,9 +74,6 @@ html, body, #root {
   position: relative;
   z-index: 1000;
   transition: all 0.2s ease-in-out;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  box-sizing: border-box;
 }
 
 /* Specific hover for unminted */
@@ -191,9 +188,6 @@ html, body, #root {
   transform-origin: center;
   position: relative;
   z-index: 1000;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  box-sizing: border-box;
 }
 
 .virtual-hover.unminted img {
