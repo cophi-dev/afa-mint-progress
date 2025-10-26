@@ -29,7 +29,7 @@ const ControlPanel = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [filtersExpanded, setFiltersExpanded] = useState(!isMobile);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(isMobile); // Auto-minimize on mobile initially
 
   const handleSearch = (e) => {
     e.preventDefault();

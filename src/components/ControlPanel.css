@@ -54,10 +54,66 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 768px) {
+  .control-panel {
+    /* Better mobile positioning */
+    left: 10px;
+    right: 10px;
+    width: auto !important;
+    /* Improved mobile shadows and styling */
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    /* Better touch handling */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Larger touch targets for mobile */
+  .control-panel .MuiIconButton-root {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 10px !important;
+  }
+  
+  /* Better slider for mobile */
+  .control-panel .MuiSlider-root {
+    height: 8px !important;
+  }
+  
+  .control-panel .MuiSlider-thumb {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Better text field for mobile */
+  .control-panel .MuiTextField-root {
+    margin-bottom: 8px;
+  }
+  
+  .control-panel .MuiInputBase-root {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 480px) {
   .control-panel {
-    left: 20px;
-    right: 20px;
-    width: auto !important;
+    left: 5px;
+    right: 5px;
+    /* Even more padding on small screens */
+    border-radius: 16px 16px 0 0 !important;
+  }
+  
+  /* Add visual handle for mobile */
+  .control-panel::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    z-index: 1;
   }
 }

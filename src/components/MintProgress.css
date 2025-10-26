@@ -30,11 +30,38 @@
     left: 0;
     right: 0;
     bottom: 0;
+    padding: 16px 12px;
+    border-radius: 12px 12px 0 0;
+    /* Better mobile shadows */
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    /* Prevent accidental dragging on mobile */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .mint-progress.collapsed {
     padding: 12px;
-    border-radius: 8px 8px 0 0;
+    /* Smaller collapsed state on mobile */
+    border-radius: 12px 12px 0 0;
   }
 
   .drag-handle {
     cursor: default;
+    /* Better touch target */
+    padding: 8px 0;
+    position: relative;
+  }
+  
+  /* Add a visual handle indicator */
+  .drag-handle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
   }
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
-import { PLACEHOLDER_DATA_URL } from '../constants/images';
+import { PLACEHOLDER_DATA_URL, PLACEHOLDER_FALLBACK } from '../constants/images';
 import './MintProgress.css';
 import imageCids from '../data/image_cids.json';
 
@@ -10,7 +10,7 @@ const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 
 const MintProgress = ({ mintedCount, latestMints }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(isMobile); // Auto-collapse on mobile initially
 
   useEffect(() => {
     const handleResize = () => {
@@ -128,7 +128,13 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                       e.target.src = `https://ipfs.io/ipfs/${imageCids[mint.tokenId]}`;
                       return;
                     }
-                    e.target.src = PLACEHOLDER_DATA_URL;
+                    
+                    // Try PNG fallback for Safari compatibility if SVG data URL fails
+                    if (e.target.src === PLACEHOLDER_DATA_URL && !e.target.dataset.triedFallback) {
+                      e.target.dataset.triedFallback = 'true';
+                      e.target.src = PLACEHOLDER_FALLBACK;
+                      return;
+                    }
                   }}
                 />
                 <Typography 

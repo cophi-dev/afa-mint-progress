@@ -22,17 +22,13 @@ html, body, #root {
   right: 0;
   bottom: 0; /* No bottom spacing on desktop */
   overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Smooth scrolling improvements */
+  /* Smooth scrolling improvements - Safari compatible */
   scroll-behavior: smooth;
-  /* Performance optimizations */
-  contain: layout style paint;
-  will-change: scroll-position;
-  /* Better momentum scrolling */
-  overscroll-behavior: contain;
-  /* Hardware acceleration for smoother scrolling */
+  /* Performance optimizations - Safari compatible */
+  -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  backface-visibility: hidden;
+  /* Better momentum scrolling */
+  -webkit-overflow-scrolling: touch;
   /* Prevent horizontal scrolling */
   overflow-x: hidden;
   padding: 20px;
@@ -44,10 +40,7 @@ html, body, #root {
   display: grid;
   gap: 0;
   background: #282c34;
-  /* Performance optimizations for grid */
-  contain: layout style;
-  /* Smooth rendering */
-  will-change: auto;
+  /* Performance optimizations for grid - Safari compatible */
   /* Grid dimensions are now dynamic via inline styles */
   /* Ensure grid doesn't overflow horizontally */
   max-width: 100%;
@@ -56,8 +49,6 @@ html, body, #root {
 /* NFT Items */
 .nft-cell {
   position: relative;
-  /* Optimize for smooth scrolling */
-  contain: layout style paint;
   /* Width and height are now dynamic via inline styles */
 }
 
@@ -65,10 +56,8 @@ html, body, #root {
   display: block;
   image-rendering: auto; /* Use smooth rendering now that we have 64px images */
   transition: all 0.2s ease-in-out; /* Smooth transition for all changes */
-  /* Optimize image loading and scrolling performance */
-  will-change: transform;
-  backface-visibility: hidden;
-  /* Improve rendering during scroll */
+  /* Safari compatible optimization */
+  -webkit-transform: translateZ(0);
   transform: translateZ(0);
   /* Ensure no default borders */
   border: none;
@@ -393,35 +382,26 @@ div.nft-cell:hover > img {
     touch-action: pan-y; /* Only allow vertical scrolling for better performance */
     /* Reduce padding for more screen space */
     padding: 5px;
-    /* Additional performance optimizations for mobile */
+    /* Additional performance optimizations for mobile - Safari compatible */
+    -webkit-transform: translateZ(0);
     transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    -webkit-perspective: 1000px;
     /* Smooth scrolling improvements */
     scroll-behavior: smooth;
-    overscroll-behavior-y: contain; /* Prevent bounce scrolling */
   }
   
   .nft-grid {
-    /* Mobile-specific grid optimizations */
-    contain: layout style paint;
-    /* Better performance during scrolling */
-    will-change: transform;
+    /* Mobile-specific grid optimizations - Safari compatible */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
   
   .nft-cell {
     /* Larger touch targets on mobile when zoomed */
     min-width: 12px; /* Smaller minimum for tighter packing */
     min-height: 12px;
-    /* Performance optimizations for mobile cells */
-    contain: layout paint;
-    /* Reduce transform overhead */
-    will-change: auto;
   }
   
   .nft-cell img {
-    /* Mobile-specific image optimizations */
-    will-change: auto; /* Reduce GPU memory usage */
     /* Faster transitions on mobile */
     transition: opacity 0.15s ease-out;
   }

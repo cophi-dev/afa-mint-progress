@@ -5,7 +5,7 @@ import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import NFTCell from './NFTCell';
 import { getBaycMetadata } from '../data/baycMetadata';
-import { PLACEHOLDER_DATA_URL } from '../constants/images';
+import { PLACEHOLDER_DATA_URL, PLACEHOLDER_FALLBACK } from '../constants/images';
 import './NFTGrid.css';
 import imageCids from '../data/image_cids.json';
 

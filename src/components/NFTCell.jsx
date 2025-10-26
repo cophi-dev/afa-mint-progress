@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import imageCids from '../data/image_cids.json';
 import { getBaycMetadata } from '../data/baycMetadata';
-import { PLACEHOLDER_DATA_URL } from '../constants/images';
+import { PLACEHOLDER_DATA_URL, PLACEHOLDER_FALLBACK } from '../constants/images';
 
 // Cache for successful loads
 const imageCache = new Map();
@@ -117,8 +117,15 @@ const NFTCell = memo(({
         return;
       }
     }
+    
+    // Try PNG fallback for Safari compatibility if SVG data URL fails
+    if (e.target.src === PLACEHOLDER_DATA_URL && !e.target.dataset.triedFallback) {
+      e.target.dataset.triedFallback = 'true';
+      e.target.src = PLACEHOLDER_FALLBACK;
+      return;
+    }
+    
     setImageError(true);
-    e.target.src = PLACEHOLDER_DATA_URL;
   };
 
   return (
