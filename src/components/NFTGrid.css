@@ -65,6 +65,36 @@ html, body, #root {
   /* Width and height are now dynamic via inline styles */
 }
 
+/* Placeholder styling - for when using data URL placeholder */
+.nft-cell img[src*="data:image/gif;base64"] {
+  background: #333640;
+  background-image: 
+    radial-gradient(circle at 50% 40%, rgba(102, 102, 119, 0.3) 20%, transparent 50%),
+    linear-gradient(135deg, transparent 40%, rgba(102, 102, 119, 0.1) 50%, transparent 60%);
+  background-size: 60% 60%, 100% 100%;
+  background-position: center 30%, center;
+  background-repeat: no-repeat, no-repeat;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+/* Pure CSS placeholder fallback - no file requests needed */
+.nft-placeholder-css {
+  background: #333640 !important;
+  background-image: 
+    radial-gradient(circle at 50% 40%, rgba(102, 102, 119, 0.4) 15%, transparent 45%),
+    linear-gradient(135deg, transparent 35%, rgba(102, 102, 119, 0.2) 50%, transparent 65%),
+    repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(102, 102, 119, 0.05) 2px, rgba(102, 102, 119, 0.05) 4px) !important;
+  background-size: 70% 70%, 100% 100%, 8px 8px !important;
+  background-position: center 35%, center, center !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  border-radius: 4px !important;
+  opacity: 0.6 !important;
+  /* Ensure it takes the full size */
+  min-width: 100% !important;
+  min-height: 100% !important;
+}
+
 /* States */
 .minted {
   opacity: 1;

@@ -1,5 +1,5 @@
-// Smaller, Safari-compatible placeholder - simple SVG converted to data URL
-export const PLACEHOLDER_DATA_URL = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMzMzNjNmIi8+CjxwYXRoIGQ9Ik0zMiAxNkM0MC44MzY2IDE2IDQ4IDIzLjE2MzQgNDggMzJDNDggNDAuODM2NiA0MC44MzY2IDQ4IDMyIDQ4QzIzLjE2MzQgNDggMTYgNDAuODM2NiAxNiAzMkMxNiAyMy4xNjM0IDIzLjE2MzQgMTYgMzIgMTZaIiBzdHJva2U9IiM2NjY2NzciIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJNMjYgMjhINDBWMzBIMjZWMjhaTTI2IDM0SDM4VjM2SDI2VjM0WiIgZmlsbD0iIzY2NjY3NyIvPgo8L3N2Zz4K';
+// Universal placeholder - tiny 1x1 transparent pixel (works in all browsers since IE6)
+export const PLACEHOLDER_DATA_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-// Alternative fallback for very old browsers
-export const PLACEHOLDER_FALLBACK = '/placeholder.png';
+// CSS-only fallback - no file requests needed
+export const PLACEHOLDER_CSS_CLASS = 'nft-placeholder-css';

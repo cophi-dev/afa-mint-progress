@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
-import { PLACEHOLDER_DATA_URL, PLACEHOLDER_FALLBACK } from '../constants/images';
+import { PLACEHOLDER_DATA_URL, PLACEHOLDER_CSS_CLASS } from '../constants/images';
 import './MintProgress.css';
 import imageCids from '../data/image_cids.json';
 
@@ -129,10 +129,11 @@ const MintProgress = ({ mintedCount, latestMints }) => {
                       return;
                     }
                     
-                    // Try PNG fallback for Safari compatibility if SVG data URL fails
-                    if (e.target.src === PLACEHOLDER_DATA_URL && !e.target.dataset.triedFallback) {
-                      e.target.dataset.triedFallback = 'true';
-                      e.target.src = PLACEHOLDER_FALLBACK;
+                    // Use CSS fallback instead of file request - no bottleneck!
+                    if (!e.target.dataset.triedCssFallback) {
+                      e.target.dataset.triedCssFallback = 'true';
+                      e.target.classList.add(PLACEHOLDER_CSS_CLASS);
+                      e.target.src = PLACEHOLDER_DATA_URL; // Set to data URL for consistent styling
                       return;
                     }
                   }}
