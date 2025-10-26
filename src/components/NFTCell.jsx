@@ -21,64 +21,80 @@ const NFTCell = memo(({
   const [isVisible, setIsVisible] = useState(false);
   const cellRef = useRef(null);
 
-  // Intersection Observer for INSTANT BAYC loading (now using local thumbnails!)
+  // Enhanced Intersection Observer for optimized image loading
   useEffect(() => {
-    if (!showBayc || !getBaycImageUrl) return;
-
+    if (!cellRef.current) return;
+    
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
         if (entry.isIntersecting && !isVisible) {
           setIsVisible(true);
-          // Load BAYC image with appropriate resolution
-          const baycUrl = getBaycImageUrl(item.id, false); // false = not explicitly high-res, let function decide based on zoom
-          if (baycUrl) {
-            setActualImageUrl(baycUrl);
+          
+          if (showBayc && getBaycImageUrl) {
+            // Load BAYC image with appropriate resolution
+            const baycUrl = getBaycImageUrl(item.id, false);
+            if (baycUrl) {
+              setActualImageUrl(baycUrl);
+            }
+          } else if (!showBayc && item.isMinted) {
+            // For AFA mode, ensure the correct URL is set
+            const afaUrl = `/images/${item.id}.png`;
+            setActualImageUrl(afaUrl);
           }
         }
       },
       { 
-        rootMargin: '200px', // Start loading even earlier for smoother experience
-        threshold: 0.1
+        rootMargin: '400px', // Even larger margin for better preloading
+        threshold: 0.01 // Lower threshold for earlier loading
       }
     );
 
-    if (cellRef.current) {
-      observer.observe(cellRef.current);
-    }
+    observer.observe(cellRef.current);
 
     return () => {
       if (cellRef.current) {
         observer.unobserve(cellRef.current);
       }
     };
-  }, [showBayc, getBaycImageUrl, item.id, isVisible]);
+  }, [showBayc, getBaycImageUrl, item.id, item.isMinted, isVisible]);
 
-  // Reset when switching modes or zoom changes
+  // Optimized reset when switching modes
   useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    setIsVisible(false);
+    
     if (showBayc) {
       setActualImageUrl('/placeholder.png');
-      setImageLoaded(false);
-      setIsVisible(false);
     } else {
+      // Immediately set correct URL for AFA mode
       setActualImageUrl(imageUrl);
+      
+      // For minted items in AFA mode, immediately mark as visible to avoid delays
+      if (item.isMinted) {
+        setIsVisible(true);
+      }
     }
-  }, [showBayc, imageUrl]);
+  }, [showBayc, imageUrl, item.isMinted]);
   const handleImageLoad = (e) => {
     setImageLoaded(true);
     setImageError(false);
     
-    // Cache successful loads
-    if (item.isMinted && item.imageUrl) {
-      const cid = imageCids[item.id];
-      if (cid) {
-        const cacheKey = `${cid}_normal`;
-        if (!imageCache.has(cacheKey)) {
-          imageCache.set(cacheKey, item.imageUrl);
-        }
-      }
+    // Cache successful loads for both AFA and BAYC
+    const cacheKey = showBayc ? `bayc_${item.id}` : `afa_${item.id}`;
+    if (!imageCache.has(cacheKey)) {
+      imageCache.set(cacheKey, e.target.src);
     }
   };
+
+  // Check if image is already cached to avoid showing loading state
+  useEffect(() => {
+    const cacheKey = showBayc ? `bayc_${item.id}` : `afa_${item.id}`;
+    if (imageCache.has(cacheKey) && actualImageUrl !== '/placeholder.png') {
+      setImageLoaded(true);
+    }
+  }, [actualImageUrl, showBayc, item.id]);
 
   const handleImageError = (e) => {
     // Handle different fallback logic for BAYC vs AFA

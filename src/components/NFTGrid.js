@@ -11,11 +11,86 @@ import imageCids from '../data/image_cids.json';
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
 
-// Simple local cache for images
+// Enhanced image cache with preloading support
 const imageCache = new Map();
+const preloadCache = new Map();
 
 // Cache for BAYC metadata to avoid repeated lookups
 const metadataCache = new Map();
+
+// Image preloader class for better performance
+class ImagePreloader {
+  constructor() {
+    this.preloadQueue = new Set();
+    this.isPreloading = false;
+    this.maxConcurrentPreloads = 10;
+    this.currentPreloads = 0;
+  }
+
+  preloadImage(url, key = null) {
+    return new Promise((resolve, reject) => {
+      const cacheKey = key || url;
+      
+      // Check if already cached
+      if (preloadCache.has(cacheKey)) {
+        resolve(preloadCache.get(cacheKey));
+        return;
+      }
+      
+      const img = new Image();
+      img.onload = () => {
+        preloadCache.set(cacheKey, url);
+        resolve(url);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async preloadImages(urls, keys = null) {
+    const promises = urls.map((url, index) => {
+      const key = keys ? keys[index] : null;
+      return this.preloadImage(url, key);
+    });
+    
+    // Process in batches to avoid overwhelming the browser
+    const batches = [];
+    for (let i = 0; i < promises.length; i += this.maxConcurrentPreloads) {
+      batches.push(promises.slice(i, i + this.maxConcurrentPreloads));
+    }
+    
+    for (const batch of batches) {
+      await Promise.allSettled(batch);
+    }
+  }
+
+  // Preload visible images and a buffer around them
+  async preloadVisibleImages(items, showBayc, getBaycImageUrl, getCurrentImageUrl, startIndex = 0, count = 100) {
+    const urls = [];
+    const keys = [];
+    
+    for (let i = startIndex; i < Math.min(startIndex + count, items.length); i++) {
+      const item = items[i];
+      if (showBayc) {
+        const baycUrl = getBaycImageUrl(item.id, false);
+        urls.push(baycUrl);
+        keys.push(`bayc_${item.id}`);
+      } else {
+        const afaUrl = getCurrentImageUrl(item);
+        if (afaUrl !== '/placeholder.png') {
+          urls.push(afaUrl);
+          keys.push(`afa_${item.id}`);
+        }
+      }
+    }
+    
+    if (urls.length > 0) {
+      await this.preloadImages(urls, keys);
+    }
+  }
+}
+
+const imagePreloader = new ImagePreloader();
 
 // Request queue to limit concurrent IPFS requests
 class RequestQueue {
@@ -157,6 +232,61 @@ function NFTGrid() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Scroll-based preloading for better performance
+  useEffect(() => {
+    let scrollTimeout;
+    
+    const handleScroll = () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      
+      scrollTimeout = setTimeout(async () => {
+        if (!gridRef.current) return;
+        
+        const scrollTop = gridRef.current.scrollTop;
+        const containerHeight = gridRef.current.clientHeight;
+        const rowHeight = zoom;
+        
+        // Calculate visible row range
+        const startRow = Math.floor(scrollTop / rowHeight);
+        const endRow = Math.ceil((scrollTop + containerHeight) / rowHeight);
+        
+        // Calculate items to preload (visible + buffer)
+        const bufferRows = 10; // Preload 10 rows ahead
+        const preloadStartRow = Math.max(0, startRow - bufferRows);
+        const preloadEndRow = Math.min(totalRows, endRow + bufferRows);
+        
+        const startIndex = preloadStartRow * cellsPerRow;
+        const endIndex = preloadEndRow * cellsPerRow;
+        const preloadCount = Math.min(endIndex - startIndex, 200); // Limit preload size
+        
+        try {
+          await imagePreloader.preloadVisibleImages(
+            items, 
+            showBayc, 
+            getBaycImageUrl, 
+            getCurrentImageUrl, 
+            startIndex, 
+            preloadCount
+          );
+        } catch (error) {
+          // Silent fail for preloading
+          console.debug('Scroll preloading failed:', error);
+        }
+      }, 100); // Debounce scroll events
+    };
+
+    if (gridRef.current) {
+      gridRef.current.addEventListener('scroll', handleScroll, { passive: true });
+      
+      return () => {
+        if (gridRef.current) {
+          gridRef.current.removeEventListener('scroll', handleScroll);
+        }
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+      };
+    }
+  }, [items, showBayc, getBaycImageUrl, getCurrentImageUrl, zoom, cellsPerRow, totalRows]);
+
   // Update image URLs when zoom level changes (for minted items to get high-res at 64px)
   useEffect(() => {
     setItems(prevItems => prevItems.map(item => {
@@ -211,17 +341,29 @@ function NFTGrid() {
     if (show !== showBayc) {
       setIsLoadingMode(true);
       
-      // Small delay to show loading state
-      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        // Preload initial batch of images for faster switching
+        const preloadCount = Math.min(500, items.length); // Preload first 500 images
+        
+        if (show) {
+          // Switching to BAYC - preload BAYC thumbnails
+          await imagePreloader.preloadVisibleImages(items, true, getBaycImageUrl, getCurrentImageUrl, 0, preloadCount);
+        } else {
+          // Switching to AFA - preload AFA thumbnails
+          await imagePreloader.preloadVisibleImages(items, false, getBaycImageUrl, getCurrentImageUrl, 0, preloadCount);
+        }
+      } catch (error) {
+        console.warn('Preloading failed, but continuing with mode switch:', error);
+      }
       
       setShowBayc(show);
       
       // Give React time to update and then hide loading
       setTimeout(() => {
         setIsLoadingMode(false);
-      }, 300);
+      }, 200);
     }
-  }, [showBayc]);
+  }, [showBayc, items, getBaycImageUrl, getCurrentImageUrl]);
 
 
   // Get current image URL based on settings (memoized)
@@ -266,17 +408,30 @@ function NFTGrid() {
 
   // Calculate grid dimensions based on screen width and zoom (memoized)
   const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
-    // Use available screen width (minus some padding)
-    const availableWidth = screenWidth - 40; // 20px padding on each side
+    // More aggressive use of screen space, especially on mobile
+    const padding = isMobile ? 10 : 40; // Reduce padding on mobile
+    const availableWidth = screenWidth - padding;
     
     // Calculate how many cells can fit in the available width
-    const maxCellsPerRow = Math.floor(availableWidth / zoom);
+    let maxCellsPerRow = Math.floor(availableWidth / zoom);
+    
+    // On mobile, be more aggressive with column count
+    if (isMobile) {
+      // Ensure minimum columns on mobile for better space utilization
+      const minColumnsOnMobile = Math.max(15, Math.floor(screenWidth / 24)); // At least 15 columns, or fit 24px cells
+      maxCellsPerRow = Math.max(maxCellsPerRow, minColumnsOnMobile);
+      
+      // If we're at small zoom levels on mobile, pack more columns
+      if (zoom <= 16) {
+        maxCellsPerRow = Math.max(maxCellsPerRow, Math.floor(screenWidth / 12)); // Pack tighter at 16px zoom
+      }
+    }
     
     // Make sure we don't exceed 100 cells per row (since original BAYC is 100x100)
     const cellsPerRow = Math.min(maxCellsPerRow, 100);
     
-    // Calculate actual grid width to center it
-    const actualGridWidth = cellsPerRow * zoom;
+    // Calculate actual grid width - allow it to use full available width on mobile
+    const actualGridWidth = isMobile ? Math.min(cellsPerRow * zoom, availableWidth) : cellsPerRow * zoom;
     
     // Calculate total rows needed for 10,000 items
     const totalRows = Math.ceil(10000 / cellsPerRow);
@@ -286,7 +441,7 @@ function NFTGrid() {
       cellsPerRow,
       totalRows
     };
-  }, [zoom, screenWidth]);
+  }, [zoom, screenWidth, isMobile]);
 
   return (
     <>

@@ -390,13 +390,40 @@ div.nft-cell:hover > img {
     /* Enable momentum scrolling on mobile */
     -webkit-overflow-scrolling: touch;
     /* Improve touch responsiveness */
-    touch-action: pan-x pan-y;
+    touch-action: pan-y; /* Only allow vertical scrolling for better performance */
+    /* Reduce padding for more screen space */
+    padding: 5px;
+    /* Additional performance optimizations for mobile */
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    /* Smooth scrolling improvements */
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain; /* Prevent bounce scrolling */
+  }
+  
+  .nft-grid {
+    /* Mobile-specific grid optimizations */
+    contain: layout style paint;
+    /* Better performance during scrolling */
+    will-change: transform;
   }
   
   .nft-cell {
     /* Larger touch targets on mobile when zoomed */
-    min-width: 16px;
-    min-height: 16px;
+    min-width: 12px; /* Smaller minimum for tighter packing */
+    min-height: 12px;
+    /* Performance optimizations for mobile cells */
+    contain: layout paint;
+    /* Reduce transform overhead */
+    will-change: auto;
+  }
+  
+  .nft-cell img {
+    /* Mobile-specific image optimizations */
+    will-change: auto; /* Reduce GPU memory usage */
+    /* Faster transitions on mobile */
+    transition: opacity 0.15s ease-out;
   }
   
   /* Improve hover effects on mobile */
@@ -408,6 +435,14 @@ div.nft-cell:hover > img {
     border: 2px solid rgba(255, 255, 255, 0.8);
     border-radius: 50%;
     box-sizing: border-box;
+    /* Faster transition for touch feedback */
+    transition: all 0.15s ease-out;
+  }
+  
+  /* Optimize loading states on mobile */
+  .image-skeleton {
+    /* Simpler animation on mobile for better performance */
+    animation: shimmer 1s ease-in-out infinite;
   }
 }
 

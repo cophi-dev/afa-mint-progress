@@ -15,6 +15,8 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import MinimizeIcon from '@mui/icons-material/Minimize';
+import SettingsIcon from '@mui/icons-material/Settings';
 import './ControlPanel.css';
 
 const ControlPanel = ({
@@ -27,6 +29,7 @@ const ControlPanel = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [filtersExpanded, setFiltersExpanded] = useState(!isMobile);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -39,40 +42,68 @@ const ControlPanel = ({
 
   return (
     <Paper 
-      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}`}
+      className={`control-panel ${isMobile ? 'mobile' : 'desktop'} ${isMinimized ? 'minimized' : ''}`}
       elevation={3}
       sx={{
         position: 'fixed',
         top: isMobile ? 'auto' : 20,
         bottom: isMobile ? 20 : 'auto',
         right: 20,
-        width: isMobile ? 'calc(100% - 40px)' : 320,
+        width: isMinimized ? 'auto' : (isMobile ? 'calc(100% - 40px)' : 320),
         maxHeight: isMobile ? '50vh' : '80vh',
         overflow: 'auto',
         bgcolor: 'rgba(30, 30, 30, 0.95)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         zIndex: 1500,
+        transition: 'all 0.3s ease-in-out',
       }}
     >
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: isMinimized ? 1 : 2 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <ZoomInIcon sx={{ color: '#fff', mr: 1 }} />
-          <Typography variant="h6" sx={{ color: '#fff', flexGrow: 1 }}>
-            Controls
-          </Typography>
-          {isMobile && (
-            <IconButton 
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              sx={{ color: '#fff' }}
-            >
-              {filtersExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: isMinimized ? 0 : 2 }}>
+          <SettingsIcon sx={{ color: '#fff', mr: 1, fontSize: isMinimized ? '20px' : '24px' }} />
+          
+          {!isMinimized && (
+            <Typography variant="h6" sx={{ color: '#fff', flexGrow: 1 }}>
+              Controls
+            </Typography>
           )}
+          
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {/* Desktop minimize button */}
+            {!isMobile && (
+              <IconButton 
+                onClick={() => setIsMinimized(!isMinimized)}
+                sx={{ 
+                  color: '#999',
+                  '&:hover': { color: '#fff' },
+                  p: 0.5
+                }}
+                size="small"
+              >
+                {isMinimized ? <ExpandMoreIcon /> : <MinimizeIcon />}
+              </IconButton>
+            )}
+            
+            {/* Mobile expand/collapse button */}
+            {isMobile && !isMinimized && (
+              <IconButton 
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                sx={{ 
+                  color: '#999',
+                  '&:hover': { color: '#fff' },
+                  p: 0.5
+                }}
+                size="small"
+              >
+                {filtersExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            )}
+          </Box>
         </Box>
 
-        <Collapse in={filtersExpanded}>
+        <Collapse in={!isMinimized && (isMobile ? filtersExpanded : true)}>
           {/* Token Search */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ color: '#999', mb: 1 }}>

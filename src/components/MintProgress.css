@@ -10,6 +10,12 @@
   z-index: 1000;
   width: 360px;
   user-select: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.mint-progress.collapsed {
+  width: auto;
+  min-width: 200px;
 }
 
 .drag-handle {

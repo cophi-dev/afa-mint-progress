@@ -11,6 +11,11 @@
   max-width: 320px;
 }
 
+.control-panel.minimized {
+  min-width: 60px !important;
+  width: 60px !important;
+}
+
 /* Custom scrollbar for control panel */
 .control-panel::-webkit-scrollbar {
   width: 6px;
