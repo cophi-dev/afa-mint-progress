@@ -1,0 +1,58 @@
+.control-panel {
+  border-radius: 12px !important;
+  transition: all 0.3s ease-in-out;
+}
+
+.control-panel.mobile {
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.control-panel.desktop {
+  max-width: 320px;
+}
+
+/* Custom scrollbar for control panel */
+.control-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.control-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.control-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Animation for mobile panel */
+@media (max-width: 768px) {
+  .control-panel {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .control-panel {
+    left: 20px;
+    right: 20px;
+    width: auto !important;
+  }
+}
