@@ -84,12 +84,12 @@ async function generateThumbnail(inputPath, outputPath) {
   try {
     await sharp(inputPath)
       .resize(64, 64, {
-        kernel: sharp.kernel.nearest, // Maintain pixelated look
+        kernel: sharp.kernel.lanczos3, // Smooth high-quality downsampling for BAYC art
         fit: 'cover'
       })
       .png({
         compressionLevel: 6, // Good compression without quality loss
-        palette: true // Optimize for pixel art
+        quality: 90 // High quality for smooth art (not palette optimized)
       })
       .toFile(outputPath);
     return true;
