@@ -15,8 +15,8 @@ const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
 const imageCache = new Map();
 const preloadCache = new Map();
 
-// Cache for BAYC metadata to avoid repeated lookups
-const metadataCache = new Map();
+// Cache for BAYC metadata to avoid repeated lookups (currently unused but kept for future use)
+// const metadataCache = new Map();
 
 // Image preloader class for better performance
 class ImagePreloader {
@@ -127,7 +127,7 @@ class RequestQueue {
   }
 }
 
-const ipfsRequestQueue = new RequestQueue(20); // Limit to 20 concurrent IPFS requests
+// const ipfsRequestQueue = new RequestQueue(20); // Limit to 20 concurrent IPFS requests (currently unused)
 
 const getAfaImageUrl = (tokenId, highRes = false) => {
   // For modal views, use IPFS for full resolution
@@ -170,6 +170,82 @@ function NFTGrid() {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const gridRef = useRef(null);
 
+  // Get current image URL based on settings (memoized)
+  const getCurrentImageUrl = useCallback((item) => {
+    if (showBayc) {
+      // For BAYC mode, return placeholder initially and load via intersection observer
+      return '/placeholder.png';
+    }
+    
+    if (item.isMinted) {
+      // Always use local 64px thumbnails - perfect at all zoom levels!
+      return getAfaImageUrl(item.id, false) || item.imageUrl;
+    }
+    
+    return '/placeholder.png';
+  }, [showBayc]);
+
+  // Get BAYC image URL - now always use local 64px thumbnails
+  const getBaycImageUrl = useCallback((tokenId, highRes = false) => {
+    // For modal views, use IPFS for full resolution
+    if (highRes) {
+      const metadata = getBaycMetadata(tokenId);
+      if (metadata?.image) {
+        const ipfsUrl = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        const cacheKey = `bayc_${tokenId}_hires`;
+        imageCache.set(cacheKey, ipfsUrl);
+        return ipfsUrl;
+      }
+    }
+    
+    // Always use local 64px thumbnail - perfect at all zoom levels!
+    const localBaycUrl = `/bayc-images/${tokenId}.png`;
+    const cacheKey = `bayc_${tokenId}_thumb`;
+    if (imageCache.has(cacheKey)) {
+      return imageCache.get(cacheKey);
+    }
+    
+    imageCache.set(cacheKey, localBaycUrl);
+    return localBaycUrl;
+  }, []);
+
+  // Calculate grid dimensions based on screen width and zoom (memoized)
+  const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
+    // More aggressive use of screen space, especially on mobile
+    const padding = isMobile ? 10 : 40; // Reduce padding on mobile
+    const availableWidth = screenWidth - padding;
+    
+    // Calculate how many cells can fit in the available width
+    let maxCellsPerRow = Math.floor(availableWidth / zoom);
+    
+    // On mobile, be more aggressive with column count
+    if (isMobile) {
+      // Ensure minimum columns on mobile for better space utilization
+      const minColumnsOnMobile = Math.max(15, Math.floor(screenWidth / 24)); // At least 15 columns, or fit 24px cells
+      maxCellsPerRow = Math.max(maxCellsPerRow, minColumnsOnMobile);
+      
+      // If we're at small zoom levels on mobile, pack more columns
+      if (zoom <= 16) {
+        maxCellsPerRow = Math.max(maxCellsPerRow, Math.floor(screenWidth / 12)); // Pack tighter at 16px zoom
+      }
+    }
+    
+    // Make sure we don't exceed 100 cells per row (since original BAYC is 100x100)
+    const cellsPerRow = Math.min(maxCellsPerRow, 100);
+    
+    // Calculate actual grid width - allow it to use full available width on mobile
+    const actualGridWidth = isMobile ? Math.min(cellsPerRow * zoom, availableWidth) : cellsPerRow * zoom;
+    
+    // Calculate total rows needed for 10,000 items
+    const totalRows = Math.ceil(10000 / cellsPerRow);
+    
+    return {
+      gridWidth: actualGridWidth,
+      cellsPerRow,
+      totalRows
+    };
+  }, [zoom, screenWidth, isMobile]);
+
   useEffect(() => {
     const fetchMintedStatus = async () => {
       try {
@@ -198,7 +274,7 @@ function NFTGrid() {
               isMinted: true,
               owner: status.owner,
               mintDate: new Date(status.timestamp * 1000).toISOString(),
-              imageUrl: getAfaImageUrl(item.id, false, true, zoom) || item.imageUrl
+              imageUrl: getAfaImageUrl(item.id, false) || item.imageUrl
             };
           }
           return item;
@@ -235,15 +311,16 @@ function NFTGrid() {
   // Scroll-based preloading for better performance
   useEffect(() => {
     let scrollTimeout;
+    const currentGridRef = gridRef.current;
     
     const handleScroll = () => {
       if (scrollTimeout) clearTimeout(scrollTimeout);
       
       scrollTimeout = setTimeout(async () => {
-        if (!gridRef.current) return;
+        if (!currentGridRef) return;
         
-        const scrollTop = gridRef.current.scrollTop;
-        const containerHeight = gridRef.current.clientHeight;
+        const scrollTop = currentGridRef.scrollTop;
+        const containerHeight = currentGridRef.clientHeight;
         const rowHeight = zoom;
         
         // Calculate visible row range
@@ -275,12 +352,12 @@ function NFTGrid() {
       }, 100); // Debounce scroll events
     };
 
-    if (gridRef.current) {
-      gridRef.current.addEventListener('scroll', handleScroll, { passive: true });
+    if (currentGridRef) {
+      currentGridRef.addEventListener('scroll', handleScroll, { passive: true });
       
       return () => {
-        if (gridRef.current) {
-          gridRef.current.removeEventListener('scroll', handleScroll);
+        if (currentGridRef) {
+          currentGridRef.removeEventListener('scroll', handleScroll);
         }
         if (scrollTimeout) clearTimeout(scrollTimeout);
       };
@@ -291,7 +368,7 @@ function NFTGrid() {
   useEffect(() => {
     setItems(prevItems => prevItems.map(item => {
       if (item.isMinted) {
-        const newImageUrl = getAfaImageUrl(item.id, false, true, zoom);
+        const newImageUrl = getAfaImageUrl(item.id, false);
         return {
           ...item,
           imageUrl: newImageUrl || item.imageUrl
@@ -303,7 +380,7 @@ function NFTGrid() {
 
   const handleApeClick = (item) => {
     setSelectedTokenId(item.id);
-    const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true, item.isMinted, zoom) : item.imageUrl;
+    const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true) : item.imageUrl;
     setSelectedApe({
       tokenId: item.id,
       isMinted: item.isMinted,
@@ -366,82 +443,6 @@ function NFTGrid() {
   }, [showBayc, items, getBaycImageUrl, getCurrentImageUrl]);
 
 
-  // Get current image URL based on settings (memoized)
-  const getCurrentImageUrl = useCallback((item) => {
-    if (showBayc) {
-      // For BAYC mode, return placeholder initially and load via intersection observer
-      return '/placeholder.png';
-    }
-    
-    if (item.isMinted) {
-      // Always use local 64px thumbnails - perfect at all zoom levels!
-      return getAfaImageUrl(item.id, false) || item.imageUrl;
-    }
-    
-    return '/placeholder.png';
-  }, [showBayc]);
-
-  // Get BAYC image URL - now always use local 64px thumbnails
-  const getBaycImageUrl = useCallback((tokenId, highRes = false) => {
-    // For modal views, use IPFS for full resolution
-    if (highRes) {
-      const metadata = getBaycMetadata(tokenId);
-      if (metadata?.image) {
-        const ipfsUrl = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
-        const cacheKey = `bayc_${tokenId}_hires`;
-        imageCache.set(cacheKey, ipfsUrl);
-        return ipfsUrl;
-      }
-    }
-    
-    // Always use local 64px thumbnail - perfect at all zoom levels!
-    const localBaycUrl = `/bayc-images/${tokenId}.png`;
-    const cacheKey = `bayc_${tokenId}_thumb`;
-    if (imageCache.has(cacheKey)) {
-      return imageCache.get(cacheKey);
-    }
-    
-    imageCache.set(cacheKey, localBaycUrl);
-    return localBaycUrl;
-  }, []);
-
-
-  // Calculate grid dimensions based on screen width and zoom (memoized)
-  const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
-    // More aggressive use of screen space, especially on mobile
-    const padding = isMobile ? 10 : 40; // Reduce padding on mobile
-    const availableWidth = screenWidth - padding;
-    
-    // Calculate how many cells can fit in the available width
-    let maxCellsPerRow = Math.floor(availableWidth / zoom);
-    
-    // On mobile, be more aggressive with column count
-    if (isMobile) {
-      // Ensure minimum columns on mobile for better space utilization
-      const minColumnsOnMobile = Math.max(15, Math.floor(screenWidth / 24)); // At least 15 columns, or fit 24px cells
-      maxCellsPerRow = Math.max(maxCellsPerRow, minColumnsOnMobile);
-      
-      // If we're at small zoom levels on mobile, pack more columns
-      if (zoom <= 16) {
-        maxCellsPerRow = Math.max(maxCellsPerRow, Math.floor(screenWidth / 12)); // Pack tighter at 16px zoom
-      }
-    }
-    
-    // Make sure we don't exceed 100 cells per row (since original BAYC is 100x100)
-    const cellsPerRow = Math.min(maxCellsPerRow, 100);
-    
-    // Calculate actual grid width - allow it to use full available width on mobile
-    const actualGridWidth = isMobile ? Math.min(cellsPerRow * zoom, availableWidth) : cellsPerRow * zoom;
-    
-    // Calculate total rows needed for 10,000 items
-    const totalRows = Math.ceil(10000 / cellsPerRow);
-    
-    return {
-      gridWidth: actualGridWidth,
-      cellsPerRow,
-      totalRows
-    };
-  }, [zoom, screenWidth, isMobile]);
 
   return (
     <>

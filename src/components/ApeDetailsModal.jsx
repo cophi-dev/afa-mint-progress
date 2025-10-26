@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, MobileStepper } from '@mui/material';
+import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';

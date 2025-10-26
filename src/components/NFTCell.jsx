@@ -23,7 +23,8 @@ const NFTCell = memo(({
 
   // Enhanced Intersection Observer for optimized image loading
   useEffect(() => {
-    if (!cellRef.current) return;
+    const currentCellRef = cellRef.current;
+    if (!currentCellRef) return;
     
     const observer = new IntersectionObserver(
       (entries) => {
@@ -50,11 +51,11 @@ const NFTCell = memo(({
       }
     );
 
-    observer.observe(cellRef.current);
+    observer.observe(currentCellRef);
 
     return () => {
-      if (cellRef.current) {
-        observer.unobserve(cellRef.current);
+      if (currentCellRef) {
+        observer.unobserve(currentCellRef);
       }
     };
   }, [showBayc, getBaycImageUrl, item.id, item.isMinted, isVisible]);
