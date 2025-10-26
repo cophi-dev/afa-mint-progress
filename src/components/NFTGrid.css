@@ -87,14 +87,14 @@ html, body, #root {
 }
 
 .nft-cell:hover img {
-  transform: scale(2);
-  transform-origin: center;
-  position: relative;
-  z-index: 1000;
-  transition: all 0.2s ease-in-out;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  box-sizing: border-box;
+  transform: scale(2) !important;
+  transform-origin: center !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  transition: all 0.2s ease-in-out !important;
+  border: 2px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
 }
 
 /* Specific hover for unminted */
@@ -104,9 +104,9 @@ html, body, #root {
 
 /* Selected item styling */
 .nft-cell.selected img {
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  box-sizing: border-box;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
 }
 
 /* Loading Screen */

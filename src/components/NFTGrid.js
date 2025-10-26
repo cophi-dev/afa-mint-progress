@@ -11,19 +11,25 @@ const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
 // Simple local cache for images
 const imageCache = new Map();
 
-const getAfaImageUrl = (tokenId) => {
+const getAfaImageUrl = (tokenId, highRes = false) => {
   const cid = imageCids[tokenId];
   if (!cid) return null;
   
   // Check if we have it cached locally
-  if (imageCache.has(cid)) {
-    return imageCache.get(cid);
+  const cacheKey = `${cid}_${highRes ? 'hires' : 'normal'}`;
+  if (imageCache.has(cacheKey)) {
+    return imageCache.get(cacheKey);
   }
   
-  // Try local image first (much faster than IPFS)
+  if (highRes) {
+    // For high-res, use IPFS directly (full resolution)
+    return `https://ipfs.io/ipfs/${cid}`;
+  }
+  
+  // For normal res, try local image first (much faster than IPFS)
   const localImageUrl = `/images/${tokenId}.png`;
   
-  // For now return local image, with IPFS as fallback via error handling
+  // Return local image, with IPFS as fallback via error handling
   return localImageUrl;
 };
 
@@ -45,6 +51,7 @@ function NFTGrid() {
   const [latestMints, setLatestMints] = useState([]);
   const [selectedApe, setSelectedApe] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTokenId, setSelectedTokenId] = useState(null);
 
   useEffect(() => {
     const fetchMintedStatus = async () => {
@@ -97,12 +104,16 @@ function NFTGrid() {
   }, []);
 
   const handleApeClick = (item) => {
+    console.log('🚀 Clicked NFT:', item.id, 'Minted:', item.isMinted);
+    setSelectedTokenId(item.id);
+    const highResUrl = item.isMinted ? getAfaImageUrl(item.id, true) : item.imageUrl;
+    console.log('🖼️ High-res URL:', highResUrl);
     setSelectedApe({
       tokenId: item.id,
       isMinted: item.isMinted,
       owner: item.owner,
       mintDate: item.mintDate,
-      image: item.imageUrl,
+      image: highResUrl, // Use high-res for minted items
       etherscanUrl: item.etherscanUrl,
       baycUrl: item.baycUrl
     });
@@ -116,7 +127,7 @@ function NFTGrid() {
           {items.map(item => (
             <div 
               key={item.id} 
-              className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'}`}
+              className={`nft-cell ${item.isMinted ? 'minted' : 'unminted'} ${selectedTokenId === item.id ? 'selected' : ''}`}
               onClick={() => handleApeClick(item)}
               title={item.isMinted ? `#${item.id} - Owned by ${item.owner}` : `#${item.id} - Original BAYC`}
             >
@@ -128,8 +139,11 @@ function NFTGrid() {
                   // Cache successful loads
                   if (item.isMinted && item.imageUrl) {
                     const cid = imageCids[item.id];
-                    if (cid && !imageCache.has(cid)) {
-                      imageCache.set(cid, item.imageUrl);
+                    if (cid) {
+                      const cacheKey = `${cid}_normal`;
+                      if (!imageCache.has(cacheKey)) {
+                        imageCache.set(cacheKey, item.imageUrl);
+                      }
                     }
                   }
                 }}
@@ -153,7 +167,10 @@ function NFTGrid() {
 
       <ApeDetailsModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedTokenId(null);
+        }}
         apeData={selectedApe}
       />
 
