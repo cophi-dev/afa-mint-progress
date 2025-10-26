@@ -48,6 +48,9 @@ html, body, #root {
   display: block;
   image-rendering: pixelated;
   transition: all 0.2s ease-in-out; /* Smooth transition for all changes */
+  /* Optimize image loading */
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* States */
