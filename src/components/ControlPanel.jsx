@@ -64,7 +64,7 @@ const ControlPanel = ({
         width: isMinimized ? 'auto' : (isMobile ? '100%' : 320),
         maxHeight: isMobile ? '50vh' : '80vh',
         overflow: 'auto',
-        bgcolor: 'rgba(20, 20, 20, 0.98)',
+        bgcolor: 'rgba(13, 15, 18, 0.96)',
         backdropFilter: 'blur(20px)',
         border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
         borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
@@ -222,7 +222,7 @@ const ControlPanel = ({
                       borderColor: 'rgba(255, 255, 255, 0.5)',
                     },
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#4CAF50',
+                      borderColor: '#6ee7a0',
                       borderWidth: 1,
                     },
                     '& .MuiInputBase-input': {
@@ -271,12 +271,12 @@ const ControlPanel = ({
                     { value: 64, label: '64' },
                   ]}
                   sx={{
-                    color: '#4CAF50',
+                    color: '#6ee7a0',
                     height: 6,
                     mt: 0.5,
                     '& .MuiSlider-track': {
                       height: 6,
-                      backgroundColor: '#4CAF50',
+                      backgroundColor: '#6ee7a0',
                     },
                     '& .MuiSlider-rail': {
                       height: 6,
@@ -285,13 +285,13 @@ const ControlPanel = ({
                     '& .MuiSlider-thumb': {
                       width: 20,
                       height: 20,
-                      backgroundColor: '#4CAF50',
+                      backgroundColor: '#6ee7a0',
                       border: '2px solid #fff',
                       '&:hover, &.Mui-focusVisible': {
-                        boxShadow: '0 0 0 6px rgba(76, 175, 80, 0.2)',
+                        boxShadow: '0 0 0 6px rgba(110, 231, 160, 0.2)',
                       },
                       '&.Mui-active': {
-                        boxShadow: '0 0 0 8px rgba(76, 175, 80, 0.3)',
+                        boxShadow: '0 0 0 8px rgba(110, 231, 160, 0.3)',
                       },
                     },
                     '& .MuiSlider-mark': {
@@ -341,10 +341,10 @@ const ControlPanel = ({
                   size="small"
                   sx={{
                     '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#4CAF50',
+                      color: '#6ee7a0',
                     },
                     '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#4CAF50',
+                      backgroundColor: '#6ee7a0',
                     },
                     '& .MuiSwitch-track': {
                       backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -392,12 +392,12 @@ const ControlPanel = ({
                     { value: 64, label: '64px' },
                   ]}
                   sx={{
-                    color: '#4CAF50',
+                    color: '#6ee7a0',
                     height: 6,
                     mt: 0.5,
                     '& .MuiSlider-track': {
                       height: 6,
-                      backgroundColor: '#4CAF50',
+                      backgroundColor: '#6ee7a0',
                     },
                     '& .MuiSlider-rail': {
                       height: 6,
@@ -406,13 +406,13 @@ const ControlPanel = ({
                     '& .MuiSlider-thumb': {
                       width: 20,
                       height: 20,
-                      backgroundColor: '#4CAF50',
+                      backgroundColor: '#6ee7a0',
                       border: '2px solid #fff',
                       '&:hover, &.Mui-focusVisible': {
-                        boxShadow: '0 0 0 6px rgba(76, 175, 80, 0.2)',
+                        boxShadow: '0 0 0 6px rgba(110, 231, 160, 0.2)',
                       },
                       '&.Mui-active': {
-                        boxShadow: '0 0 0 8px rgba(76, 175, 80, 0.3)',
+                        boxShadow: '0 0 0 8px rgba(110, 231, 160, 0.3)',
                       },
                     },
                     '& .MuiSlider-mark': {
@@ -440,10 +440,10 @@ const ControlPanel = ({
                       size="small"
                       sx={{
                         '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#4CAF50',
+                          color: '#6ee7a0',
                         },
                         '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#4CAF50',
+                          backgroundColor: '#6ee7a0',
                         },
                         '& .MuiSwitch-track': {
                           backgroundColor: 'rgba(255, 255, 255, 0.3)',

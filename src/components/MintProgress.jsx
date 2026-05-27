@@ -8,7 +8,7 @@ import imageCids from '../data/image_cids.json';
 
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 
-const MintProgress = ({ mintedCount, latestMints }) => {
+const MintProgress = ({ mintedCount, latestMints, fetchError }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768); // Auto-collapse on mobile initially
 
@@ -54,20 +54,43 @@ const MintProgress = ({ mintedCount, latestMints }) => {
             flex: 1
           }}>
             <TrendingUp sx={{ 
-              color: '#4CAF50', 
-              fontSize: isMobile ? '24px' : '18px' 
+              color: '#6ee7a0', 
+              fontSize: isMobile ? '22px' : '18px',
+              flexShrink: 0,
             }} />
-            <Typography 
-              sx={{ 
-                color: '#fff', 
-                fontSize: isMobile ? '18px' : '16px',
-                fontFamily: 'monospace',
-                fontWeight: isMobile ? 600 : 500,
-                lineHeight: 1.2
-              }}
-            >
-              AFA Progress {mintedCount} / 10000
-            </Typography>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography 
+                sx={{ 
+                  color: '#fff', 
+                  fontSize: isMobile ? '16px' : '15px',
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {mintedCount.toLocaleString()} / 10,000 minted
+              </Typography>
+              <Box sx={{ 
+                mt: 0.75,
+                height: 3,
+                borderRadius: 2,
+                bgcolor: 'rgba(255,255,255,0.08)',
+                overflow: 'hidden',
+              }}>
+                <Box sx={{
+                  height: '100%',
+                  width: `${(mintedCount / 10000) * 100}%`,
+                  bgcolor: '#6ee7a0',
+                  borderRadius: 2,
+                  transition: 'width 0.6s ease',
+                }} />
+              </Box>
+              {fetchError && (
+                <Typography sx={{ mt: 0.75, fontSize: '11px', color: '#f87171', lineHeight: 1.3 }}>
+                  {fetchError}
+                </Typography>
+              )}
+            </Box>
           </Box>
           
           <IconButton

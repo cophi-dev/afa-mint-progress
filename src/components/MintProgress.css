@@ -2,120 +2,68 @@
   position: fixed;
   bottom: 20px;
   left: 20px;
-  background: rgba(10, 10, 10, 0.95);
-  padding: 16px;
-  border-radius: 12px;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(13, 15, 18, 0.94);
+  padding: 14px 16px;
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 1000;
-  width: 360px;
+  width: 340px;
   user-select: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: width 0.25s ease, padding 0.25s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .mint-progress.collapsed {
   width: auto;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .drag-handle {
   cursor: move;
 }
 
+.mint-entry {
+  border-radius: 8px;
+}
+
 @media (max-width: 768px) {
   .mint-progress.mobile {
     position: fixed !important;
     transform: none !important;
-    width: calc(100% - 32px) !important;
-    left: 16px !important;
-    right: 16px !important;
-    bottom: 70vh !important; /* Position above the control panel */
-    padding: 16px !important;
-    border-radius: 16px !important;
-    /* Enhanced mobile shadows */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    /* Prevent accidental dragging on mobile */
-    -webkit-user-select: none;
-    user-select: none;
-    /* Smooth animations */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    /* Slide up animation */
-    animation: slideUpMint 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Lower z-index so control panel stays on top */
+    width: calc(100% - 24px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: auto !important;
+    top: 12px !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
     z-index: 1500 !important;
+    animation: slideDown 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .mint-progress.mobile.collapsed {
-    padding: 12px 16px !important;
-    /* More compact collapsed state on mobile */
-    border-radius: 16px !important;
+    padding: 10px 14px !important;
     width: auto !important;
-    left: 16px !important;
+    left: 12px !important;
     right: auto !important;
-    max-width: 280px !important;
+    max-width: 260px !important;
   }
 
   .mint-progress.mobile .drag-handle {
     cursor: default;
-    /* Better touch target */
-    padding: 12px 0;
-    position: relative;
   }
-  
-  /* Remove the drag handle visual since it's not at the bottom anymore */
-  .mint-progress.mobile .drag-handle::before {
-    display: none;
-  }
-  
-  /* Better touch targets for mobile */
+
   .mint-progress.mobile .MuiIconButton-root {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    padding: 12px !important;
-    border-radius: 8px !important;
-  }
-  
-  /* Better spacing for mobile mint entries */
-  .mint-progress.mobile .mint-entry {
-    min-height: 64px !important;
-    padding: 16px !important;
-    border-radius: 12px !important;
-  }
-  
-  /* Better typography for mobile */
-  .mint-progress.mobile .MuiTypography-root {
-    line-height: 1.4 !important;
-  }
-  
-  /* Enhanced animations */
-  .mint-progress.mobile .MuiCollapse-root {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  
-  /* Subtle touch feedback */
-  .mint-progress.mobile .MuiIconButton-root:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
-  }
-  
-  /* Better focus states for accessibility */
-  .mint-progress.mobile .MuiIconButton-root:focus-visible {
-    outline: 2px solid #4CAF50;
-    outline-offset: 2px;
-  }
-  
-  /* Enhanced mint entry interactions */
-  .mint-progress.mobile .mint-entry:active {
-    transform: scale(0.98);
-    transition: transform 0.1s ease;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 }
 
-@keyframes slideUpMint {
+@keyframes slideDown {
   from {
-    transform: translateY(100%);
+    transform: translateY(-16px);
     opacity: 0;
   }
   to {
