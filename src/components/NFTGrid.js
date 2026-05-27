@@ -389,7 +389,7 @@ function NFTGrid() {
       owner: item.owner,
       mintDate: item.mintDate,
       image: highResUrl, // Use high-res for minted items
-      etherscanUrl: item.etherscanUrl,
+      editorUrl: item.isMinted ? buildAfaEditorUrl(item.id) : null,
       baycUrl: item.baycUrl
     });
     setModalOpen(true);

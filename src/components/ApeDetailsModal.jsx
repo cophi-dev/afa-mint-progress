@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip } from '@mui/material';
+import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, Link } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -109,9 +109,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleEtherscanClick = () => {
-    const url = `https://etherscan.io/token/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d?a=${apeData.tokenId}`;
-    window.open(url, '_blank');
+  const handleBaycClick = () => {
+    window.open(apeData.baycUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -204,7 +203,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 <Chip 
                   label="Minted" 
                   sx={{ 
-                    bgcolor: '#4CAF50',
+                    bgcolor: '#6ee7a0',
                     color: '#fff',
                     fontWeight: 600,
                     fontSize: '0.875rem',
@@ -326,25 +325,80 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Box>
             )}
 
-            <Button
-              variant="contained"
-              startIcon={<LaunchIcon />}
-              onClick={handleEtherscanClick}
-              sx={{
-                mt: 'auto',
-                bgcolor: '#3f51b5',
-                color: '#fff',
-                py: 1.5,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontSize: '1rem',
-                '&:hover': {
-                  bgcolor: '#303f9f',
-                },
-              }}
-            >
-              View on {apeData.isMinted ? 'Etherscan' : 'BAYC'}
-            </Button>
+            {apeData.isMinted && apeData.editorUrl && (
+              <Box sx={{ mt: 'auto' }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: '#999',
+                    mb: 1,
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  AFA Editor
+                </Typography>
+                <Link
+                  href={apeData.editorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    display: 'block',
+                    color: '#8ab4ff',
+                    fontFamily: 'monospace',
+                    fontSize: '0.8rem',
+                    wordBreak: 'break-all',
+                    mb: 2,
+                    '&:hover': { color: '#adc6ff' },
+                  }}
+                >
+                  {apeData.editorUrl}
+                </Link>
+                <Button
+                  variant="contained"
+                  component="a"
+                  href={apeData.editorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<LaunchIcon />}
+                  sx={{
+                    bgcolor: '#3f51b5',
+                    color: '#fff',
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    '&:hover': {
+                      bgcolor: '#303f9f',
+                    },
+                  }}
+                >
+                  Open in Editor
+                </Button>
+              </Box>
+            )}
+
+            {!apeData.isMinted && (
+              <Button
+                variant="contained"
+                startIcon={<LaunchIcon />}
+                onClick={handleBaycClick}
+                sx={{
+                  mt: 'auto',
+                  bgcolor: '#3f51b5',
+                  color: '#fff',
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  '&:hover': {
+                    bgcolor: '#303f9f',
+                  },
+                }}
+              >
+                View on BAYC
+              </Button>
+            )}
           </Box>
         </Card>
       </Box>
