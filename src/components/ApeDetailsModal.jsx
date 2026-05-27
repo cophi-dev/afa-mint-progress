@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, Link } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -85,7 +85,16 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [activeStep, setActiveStep] = useState(0);
   const maxSteps = 2;
 
+  useEffect(() => {
+    if (open) {
+      setActiveStep(0);
+    }
+  }, [open, apeData?.tokenId]);
+
   if (!apeData) return null;
+
+  const isAfaStep = activeStep === 0;
+  const showAfaBlur = isAfaStep && !apeData.isMinted;
 
   const baycMetadata = getBaycMetadata(apeData.tokenId);
   const baycImageUrl = baycMetadata?.image?.replace('ipfs://', 'https://ipfs.io/ipfs/');
@@ -149,8 +158,52 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 component="img"
                 image={images[activeStep].url}
                 alt={`${images[activeStep].title} #${apeData.tokenId}`}
-                sx={imageStyle}
+                sx={{
+                  ...imageStyle,
+                  ...(showAfaBlur && {
+                    filter: 'blur(20px)',
+                    transform: 'scale(1.08)',
+                    '&:hover': { transform: 'scale(1.08)' },
+                  }),
+                }}
               />
+              {showAfaBlur && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    px: 3,
+                    textAlign: 'center',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: '#fff',
+                      fontWeight: 700,
+                      textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                    }}
+                  >
+                    Not yet minted
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: 'rgba(255,255,255,0.85)',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                    }}
+                  >
+                    Mint your AFA to reveal the full artwork
+                  </Typography>
+                </Box>
+              )}
               <Typography 
                 variant="h6" 
                 sx={{ 
@@ -158,7 +211,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   position: 'absolute',
                   top: 16,
                   left: 16,
-                  textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                  zIndex: 1,
                 }}
               >
                 {images[activeStep].title}
@@ -196,15 +250,26 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   color: '#fff',
                 }}
               >
-                {apeData.isMinted ? 'Minted AFA' : 'Original BAYC'} #{apeData.tokenId}
+                AFA #{apeData.tokenId}
               </Typography>
               
-              {apeData.isMinted && (
+              {apeData.isMinted ? (
                 <Chip 
                   label="Minted" 
                   sx={{ 
                     bgcolor: '#6ee7a0',
                     color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                  }} 
+                />
+              ) : (
+                <Chip 
+                  label="Not Minted" 
+                  sx={{ 
+                    bgcolor: 'rgba(255, 183, 77, 0.2)',
+                    color: '#ffb74d',
+                    border: '1px solid rgba(255, 183, 77, 0.4)',
                     fontWeight: 600,
                     fontSize: '0.875rem',
                   }} 
@@ -378,26 +443,67 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Box>
             )}
 
-            {!apeData.isMinted && (
-              <Button
-                variant="contained"
-                startIcon={<LaunchIcon />}
-                onClick={handleBaycClick}
-                sx={{
-                  mt: 'auto',
-                  bgcolor: '#3f51b5',
-                  color: '#fff',
-                  py: 1.5,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontSize: '1rem',
-                  '&:hover': {
-                    bgcolor: '#303f9f',
-                  },
-                }}
-              >
-                View on BAYC
-              </Button>
+            {!apeData.isMinted && apeData.claimUrl && (
+              <Box sx={{ mt: 'auto' }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: '#999',
+                    mb: 1,
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Ready to mint?
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#bbb', mb: 2, lineHeight: 1.6 }}
+                >
+                  Your AFA is waiting. Claim and mint #{apeData.tokenId} to unlock the full artwork.
+                </Typography>
+                <Button
+                  variant="contained"
+                  component="a"
+                  href={apeData.claimUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<LaunchIcon />}
+                  sx={{
+                    bgcolor: '#6ee7a0',
+                    color: '#0d0f12',
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    mb: 1.5,
+                    '&:hover': {
+                      bgcolor: '#34d399',
+                    },
+                  }}
+                >
+                  Mint Your AFA
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleBaycClick}
+                  sx={{
+                    color: '#8b95a5',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    py: 1,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    },
+                  }}
+                >
+                  View Original BAYC
+                </Button>
+              </Box>
             )}
           </Box>
         </Card>

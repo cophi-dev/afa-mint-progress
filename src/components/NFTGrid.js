@@ -5,7 +5,7 @@ import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import NFTCell from './NFTCell';
 import imageCids from '../data/image_cids.json';
-import { buildAfaEditorUrl } from '../constants/editor';
+import { buildAfaEditorUrl, AFA_CLAIM_URL } from '../constants/editor';
 import './NFTGrid.css';
 
 const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
@@ -171,8 +171,9 @@ function NFTGrid() {
       isMinted,
       owner: status?.owner ?? null,
       mintDate: status ? new Date(status.timestamp * 1000).toISOString() : null,
-      image: isMinted ? getAfaImageUrl(tokenId, true) : `/bayc-images/${tokenId}.png`,
+      image: getAfaImageUrl(tokenId, true),
       editorUrl: isMinted ? buildAfaEditorUrl(tokenId) : null,
+      claimUrl: AFA_CLAIM_URL,
       baycUrl: `https://etherscan.io/token/${BAYC_CONTRACT}?a=${tokenId}`,
     });
     setModalOpen(true);
