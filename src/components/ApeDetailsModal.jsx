@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, Skeleton } from '@mui/material';
+import {
+  Modal,
+  Box,
+  Typography,
+  Card,
+  CardMedia,
+  IconButton,
+  Button,
+  Chip,
+  Skeleton,
+  useMediaQuery,
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -45,7 +56,7 @@ const cardStyle = {
   flex: 1,
   minHeight: 0,
   maxHeight: '100%',
-  overflow: { xs: 'auto', md: 'hidden' },
+  overflow: { xs: 'hidden', md: 'hidden' },
   WebkitOverflowScrolling: 'touch',
 };
 
@@ -53,7 +64,7 @@ const imageContainerStyle = {
   flexShrink: 0,
   width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
   maxWidth: { md: '480px' },
-  height: { xs: 'min(38dvh, 320px)', md: 'auto' },
+  height: { xs: 'min(30dvh, 240px)', md: 'auto' },
   aspectRatio: { xs: 'auto', md: '1' },
   position: 'relative',
   backgroundColor: '#000',
@@ -81,11 +92,18 @@ const contentStyle = {
   minWidth: 0,
   minHeight: 0,
   bgcolor: '#2A2A2A',
-  p: { xs: 1.75, md: 3 },
+  p: { xs: 1.25, md: 3 },
   display: 'flex',
   flexDirection: 'column',
-  gap: { xs: 1.25, md: 2 },
-  overflowY: { xs: 'visible', md: 'auto' },
+  gap: { xs: 0.75, md: 2 },
+  overflowY: { xs: 'hidden', md: 'auto' },
+};
+
+const mobileInfoBoxStyle = {
+  bgcolor: '#363636',
+  borderRadius: 1,
+  px: 1,
+  py: 0.625,
 };
 
 const arrowButtonStyle = {
@@ -105,6 +123,7 @@ const arrowButtonStyle = {
 };
 
 const ApeDetailsModal = ({ open, onClose, apeData }) => {
+  const isMobile = useMediaQuery('(max-width:768px)');
   const [activeStep, setActiveStep] = useState(0);
   const [baycMetadata, setBaycMetadata] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -137,34 +156,28 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setMetadataLoading(true);
 
     const load = async () => {
-      const [, metadata] = await Promise.all([
-        preloadImage(image),
-        getBaycMetadataAsync(tokenId),
-      ]);
+      const metadataPromise = getBaycMetadataAsync(tokenId);
+      const afaHighResPromise = isMinted ? getAfaIpfsUrl(tokenId, true) : Promise.resolve(null);
+      const [metadata, afaHighRes] = await Promise.all([metadataPromise, afaHighResPromise]);
 
       if (cancelled) return;
 
       setBaycMetadata(metadata);
+
+      const baycHighRes = ipfsToHttpUrl(metadata?.image);
+      const afaUrl = afaHighRes || getAfaThumbnailFallbackUrl(tokenId) || image;
+      const baycUrl = baycHighRes || baycImage;
+
+      await preloadImage(afaUrl);
+
+      if (cancelled) return;
+
+      setAfaImageUrl(afaUrl);
+      setBaycImageUrl(baycUrl);
       setMetadataLoading(false);
       setImageReady(true);
 
-      preloadImage(baycImage);
-
-      const baycHighRes = ipfsToHttpUrl(metadata?.image);
-      if (!cancelled && baycHighRes) {
-        preloadImage(baycHighRes).then(() => {
-          if (!cancelled) setBaycImageUrl(baycHighRes);
-        });
-      }
-
-      if (isMinted) {
-        const ipfsUrl = await getAfaIpfsUrl(tokenId, true);
-        if (!cancelled && ipfsUrl) {
-          preloadImage(ipfsUrl).then(() => {
-            if (!cancelled) setAfaImageUrl(ipfsUrl);
-          });
-        }
-      }
+      preloadImage(baycUrl);
     };
 
     load();
@@ -317,19 +330,21 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 }}
               >
                 <Typography
-                  variant="h5"
+                  variant={isMobile ? 'body1' : 'h5'}
                   sx={{
                     color: '#fff',
                     fontWeight: 700,
+                    fontSize: isMobile ? '1rem' : undefined,
                     textShadow: '0 2px 8px rgba(0,0,0,0.6)',
                   }}
                 >
                   Not yet minted
                 </Typography>
                 <Typography
-                  variant="body1"
+                  variant="body2"
                   sx={{
                     color: 'rgba(255,255,255,0.85)',
+                    fontSize: isMobile ? '0.75rem' : undefined,
                     textShadow: '0 1px 4px rgba(0,0,0,0.5)',
                   }}
                 >
@@ -374,13 +389,13 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
           </Box>
 
           <Box sx={contentStyle}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Typography
                 variant="h5"
                 sx={{
                   fontWeight: 700,
                   color: '#fff',
-                  fontSize: { xs: '1.125rem', md: '1.5rem' },
+                  fontSize: { xs: '1rem', md: '1.5rem' },
                 }}
               >
                 AFA #{apeData.tokenId}
@@ -394,7 +409,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     bgcolor: '#6ee7a0',
                     color: '#fff',
                     fontWeight: 600,
-                    fontSize: '0.75rem',
+                    fontSize: '0.6875rem',
+                    height: 22,
                   }}
                 />
               ) : (
@@ -406,13 +422,31 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     color: '#ffb74d',
                     border: '1px solid rgba(255, 183, 77, 0.4)',
                     fontWeight: 600,
-                    fontSize: '0.75rem',
+                    fontSize: '0.6875rem',
+                    height: 22,
                   }}
                 />
               )}
+
+              {isMobile && apeData.isMinted && apeData.mintDate && (
+                <Typography
+                  sx={{
+                    color: 'rgba(255,255,255,0.45)',
+                    fontSize: '0.6875rem',
+                    fontVariantNumeric: 'tabular-nums',
+                    ml: 'auto',
+                  }}
+                >
+                  {new Date(apeData.mintDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Typography>
+              )}
             </Box>
 
-            {apeData.isMinted && apeData.mintDate && (
+            {!isMobile && apeData.isMinted && apeData.mintDate && (
               <Box>
                 <Typography
                   variant="subtitle1"
@@ -442,39 +476,44 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Box>
             )}
 
-            <Box>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  color: '#999',
-                  mb: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  fontSize: '0.875rem',
-                }}
-              >
-                <AccountBalanceWalletIcon fontSize="small" />
-                {apeData.isMinted ? 'Owner' : 'Original Owner'}
-              </Typography>
-              <Box sx={infoBoxStyle}>
+            <Box sx={{ flexShrink: 0 }}>
+              {!isMobile && (
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: '#999',
+                    mb: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  <AccountBalanceWalletIcon fontSize="small" />
+                  {apeData.isMinted ? 'Owner' : 'Original Owner'}
+                </Typography>
+              )}
+              <Box sx={isMobile ? mobileInfoBoxStyle : infoBoxStyle}>
                 {apeData.ensName && (
                   <Typography
                     sx={{
                       color: '#fff',
-                      mb: 1,
+                      mb: isMobile ? 0.25 : 1,
                       fontWeight: 500,
+                      fontSize: isMobile ? '0.75rem' : '1rem',
                     }}
+                    noWrap={isMobile}
                   >
                     {apeData.ensName}
                   </Typography>
                 )}
                 <Typography
+                  noWrap={isMobile}
                   sx={{
                     color: apeData.ensName ? '#999' : '#fff',
                     fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                    wordBreak: 'break-all',
+                    fontSize: isMobile ? '0.6875rem' : '0.875rem',
+                    wordBreak: isMobile ? 'normal' : 'break-all',
                   }}
                 >
                   {apeData.owner || 'N/A'}
@@ -484,33 +523,40 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
             {metadataLoading && (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.5 }}>
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} variant="rounded" height={40} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+                {Array.from({ length: isMobile ? 4 : 4 }).map((_, index) => (
+                  <Skeleton
+                    key={index}
+                    variant="rounded"
+                    height={isMobile ? 28 : 40}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.06)' }}
+                  />
                 ))}
               </Box>
             )}
 
             {!metadataLoading && baycMetadata?.attributes && (
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#888',
-                    mb: 0.75,
-                    display: 'block',
-                    fontWeight: 600,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Attributes
-                </Typography>
+              <Box sx={{ flex: isMobile ? 1 : 'initial', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                {!isMobile && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: '#888',
+                      mb: 0.75,
+                      display: 'block',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Attributes
+                  </Typography>
+                )}
                 <Box sx={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 0.5,
-                  maxHeight: { xs: 120, md: 140 },
-                  overflowY: 'auto',
+                  gap: isMobile ? 0.375 : 0.5,
+                  maxHeight: { xs: 'none', md: 140 },
+                  overflowY: { xs: 'hidden', md: 'auto' },
                   pr: 0.5,
                   '&::-webkit-scrollbar': { width: 4 },
                   '&::-webkit-scrollbar-thumb': {
@@ -522,8 +568,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     <Box
                       key={index}
                       sx={{
-                        px: 1,
-                        py: 0.5,
+                        px: isMobile ? 0.75 : 1,
+                        py: isMobile ? 0.375 : 0.5,
                         borderRadius: 1,
                         bgcolor: 'rgba(255, 255, 255, 0.06)',
                         minWidth: 0,
@@ -531,13 +577,23 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     >
                       <Typography
                         noWrap
-                        sx={{ color: '#777', fontSize: '0.625rem', lineHeight: 1.2, display: 'block' }}
+                        sx={{
+                          color: '#777',
+                          fontSize: isMobile ? '0.5625rem' : '0.625rem',
+                          lineHeight: 1.2,
+                          display: 'block',
+                        }}
                       >
                         {attr.trait_type}
                       </Typography>
                       <Typography
                         noWrap
-                        sx={{ color: '#eee', fontSize: '0.7rem', fontWeight: 500, lineHeight: 1.3 }}
+                        sx={{
+                          color: '#eee',
+                          fontSize: isMobile ? '0.625rem' : '0.7rem',
+                          fontWeight: 500,
+                          lineHeight: 1.3,
+                        }}
                       >
                         {attr.value}
                       </Typography>
@@ -548,7 +604,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             )}
 
             {apeData.isMinted && apeData.editorUrl && (
-              <Box sx={{ mt: 'auto', pt: 1 }}>
+              <Box sx={{ mt: 'auto', pt: isMobile ? 0.25 : 1, flexShrink: 0 }}>
                 <Button
                   variant="contained"
                   component="a"
@@ -556,14 +612,15 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   target="_blank"
                   rel="noopener noreferrer"
                   fullWidth
-                  startIcon={<LaunchIcon />}
+                  startIcon={!isMobile && <LaunchIcon />}
                   sx={{
                     bgcolor: '#3f51b5',
                     color: '#fff',
-                    py: 1.25,
-                    borderRadius: 2,
+                    py: isMobile ? 0.875 : 1.25,
+                    borderRadius: 1.5,
                     textTransform: 'none',
-                    fontSize: '0.9rem',
+                    fontSize: isMobile ? '0.8125rem' : '0.9rem',
+                    minHeight: isMobile ? 36 : undefined,
                     '&:hover': {
                       bgcolor: '#303f9f',
                     },
@@ -575,24 +632,28 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             )}
 
             {!apeData.isMinted && apeData.claimUrl && (
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: '#999',
-                    mb: 1,
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Ready to mint?
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: '#bbb', mb: 2, lineHeight: 1.6 }}
-                >
-                  Your AFA is waiting. Claim and mint #{apeData.tokenId} to unlock the full artwork.
-                </Typography>
+              <Box sx={{ mt: 'auto', flexShrink: 0 }}>
+                {!isMobile && (
+                  <>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        color: '#999',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Ready to mint?
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: '#bbb', mb: 2, lineHeight: 1.6 }}
+                    >
+                      Your AFA is waiting. Claim and mint #{apeData.tokenId} to unlock the full artwork.
+                    </Typography>
+                  </>
+                )}
                 <Button
                   variant="contained"
                   component="a"
@@ -600,15 +661,16 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   target="_blank"
                   rel="noopener noreferrer"
                   fullWidth
-                  startIcon={<LaunchIcon />}
+                  startIcon={!isMobile && <LaunchIcon />}
                   sx={{
                     bgcolor: '#6ee7a0',
                     color: '#0d0f12',
-                    py: 1.25,
-                    borderRadius: 2,
+                    py: isMobile ? 0.875 : 1.25,
+                    borderRadius: 1.5,
                     textTransform: 'none',
-                    fontSize: '0.9rem',
+                    fontSize: isMobile ? '0.8125rem' : '0.9rem',
                     fontWeight: 700,
+                    minHeight: isMobile ? 36 : undefined,
                     '&:hover': {
                       bgcolor: '#34d399',
                     },

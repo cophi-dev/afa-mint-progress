@@ -21,24 +21,6 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (!isMobile) return undefined;
-
-    const root = document.documentElement;
-    if (hidden) {
-      root.style.setProperty('--mobile-mint-offset', '0px');
-    } else {
-      root.style.setProperty(
-        '--mobile-mint-offset',
-        isCollapsed ? '56px' : 'min(38vh, 280px)'
-      );
-    }
-
-    return () => {
-      root.style.removeProperty('--mobile-mint-offset');
-    };
-  }, [isMobile, isCollapsed, hidden]);
-
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('en-GB', {
