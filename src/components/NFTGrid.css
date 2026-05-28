@@ -58,6 +58,7 @@ html, body, #root {
   cursor: pointer;
   overflow: hidden;
   background: var(--bg-secondary);
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .nft-cell img {
@@ -69,6 +70,7 @@ html, body, #root {
   outline: none;
   border-radius: 2px;
   pointer-events: none;
+  transition: transform 0.12s ease;
 }
 
 .minted {
@@ -79,16 +81,41 @@ html, body, #root {
   opacity: var(--unminted-opacity);
 }
 
+/* Subtle blur on unminted only — zoom-scaled so tiny cells stay cheap */
+.unminted img {
+  --unminted-blur: clamp(0.35px, calc(var(--cell-zoom, 16) * 0.022px), 1.75px);
+  filter: blur(var(--unminted-blur));
+  transform: scale(calc(1 + var(--cell-zoom, 16) * 0.00075));
+}
+
 @media (hover: hover) and (pointer: fine) {
   .nft-cell:hover {
     z-index: 2;
     outline: 2px solid var(--accent);
     outline-offset: -1px;
     border-radius: 2px;
+    box-shadow: 0 0 12px var(--accent-dim), 0 0 4px rgba(110, 231, 160, 0.2);
+  }
+
+  .nft-cell.unminted:hover {
+    opacity: 0.75;
+  }
+
+  .nft-cell.unminted:hover img {
+    filter: none;
+    transform: none;
+  }
+}
+
+@media (hover: none) {
+  .nft-cell:active img {
+    transform: scale(0.92);
   }
 }
 
 .nft-cell.selected img {
+  filter: none;
+  transform: none;
   box-shadow: 0 0 0 2px var(--text-primary), 0 0 12px var(--accent-dim);
   border-radius: 50%;
   animation: selectedPulse 1.5s ease-in-out infinite;
@@ -172,11 +199,6 @@ html, body, #root {
   body.modal-open-mobile .nft-grid-wrapper {
     top: 0;
     bottom: 0;
-  }
-
-  .nft-cell:active {
-    outline: 2px solid var(--accent);
-    outline-offset: -1px;
   }
 }
 
