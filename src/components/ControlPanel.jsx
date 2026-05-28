@@ -108,7 +108,7 @@ const ControlPanel = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const activeTraitCount = Object.values(traitFilters).reduce(
     (sum, values) => sum + (values?.length ?? 0),
@@ -117,10 +117,8 @@ const ControlPanel = ({
 
   useEffect(() => {
     if (isMobile) {
-      setIsMinimized(false);
       setIsExpanded(false);
     } else {
-      setIsMinimized(true);
       setIsExpanded(false);
     }
   }, [isMobile]);
