@@ -3,7 +3,7 @@ import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
 import './MintProgress.css';
-import { getAfaIpfsUrl } from '../utils/imageUrls';
+import { setAfaIpfsImageSrc, tryNextAfaIpfsGateway } from '../utils/imageUrls';
 
 const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false, onMintClick }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -207,8 +207,11 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
                     const img = e.target;
                     if (img.dataset.fallback === 'png') {
                       img.dataset.fallback = 'ipfs';
-                      const ipfsUrl = await getAfaIpfsUrl(mint.tokenId, true);
-                      if (ipfsUrl) img.src = ipfsUrl;
+                      await setAfaIpfsImageSrc(img, mint.tokenId, true);
+                      return;
+                    }
+                    if (img.dataset.fallback === 'ipfs') {
+                      await tryNextAfaIpfsGateway(img, mint.tokenId, true);
                       return;
                     }
                     img.dataset.fallback = 'png';

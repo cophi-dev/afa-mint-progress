@@ -24,7 +24,12 @@ import {
   getBaycThumbnailFallbackUrl,
   ipfsToHttpUrl,
   preloadImage,
+  resolveAfaIpfsUrl,
+  resolveIpfsUrl,
+  setAfaIpfsImageSrc,
+  tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
+import { preloadImageCached } from '../utils/imageCache';
 
 const style = {
   position: 'absolute',
@@ -165,18 +170,23 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
     const load = async () => {
       const metadataPromise = getBaycMetadataAsync(tokenId);
-      const afaHighResPromise = isMinted ? getAfaIpfsUrl(tokenId, true) : Promise.resolve(null);
+      const afaHighResPromise = isMinted ? resolveAfaIpfsUrl(tokenId, true) : Promise.resolve(null);
       const [metadata, afaHighRes] = await Promise.all([metadataPromise, afaHighResPromise]);
 
       if (cancelled) return;
 
       setBaycMetadata(metadata);
 
-      const baycHighRes = ipfsToHttpUrl(metadata?.image);
+      const baycCid = metadata?.image?.startsWith('ipfs://') ? metadata.image.slice(7) : null;
+      const baycHighRes = baycCid ? await resolveIpfsUrl(baycCid) : null;
       const afaUrl = afaHighRes || getAfaThumbnailFallbackUrl(tokenId) || image;
       const baycUrl = baycHighRes || baycImage;
 
-      await preloadImage(afaUrl);
+      if (afaHighRes) {
+        await preloadImageCached(afaUrl);
+      } else {
+        await preloadImage(afaUrl);
+      }
 
       if (cancelled) return;
 
@@ -185,7 +195,11 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       setMetadataLoading(false);
       setImageReady(true);
 
-      preloadImage(baycUrl);
+      if (baycHighRes) {
+        preloadImageCached(baycUrl);
+      } else {
+        preloadImage(baycUrl);
+      }
     };
 
     load();
@@ -259,6 +273,10 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const stage = img.dataset.fallbackStage || 'webp';
 
     if (stepIndex === 0) {
+      if (apeData.isMinted && await tryNextAfaIpfsGateway(img, apeData.tokenId, true)) {
+        return;
+      }
+
       if (stage === 'webp') {
         img.dataset.fallbackStage = 'png';
         img.src = getAfaThumbnailFallbackUrl(apeData.tokenId);
@@ -266,8 +284,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       }
       if (stage === 'png' && apeData.isMinted) {
         img.dataset.fallbackStage = 'ipfs';
-        const ipfsUrl = await getAfaIpfsUrl(apeData.tokenId, true);
-        if (ipfsUrl) img.src = ipfsUrl;
+        await setAfaIpfsImageSrc(img, apeData.tokenId, true);
       }
       return;
     }
