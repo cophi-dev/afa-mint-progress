@@ -164,9 +164,14 @@ html, body, #root {
 @media (max-width: 768px) {
   .nft-grid-wrapper {
     padding: 8px;
-    top: var(--mobile-mint-offset, 64px);
-    bottom: var(--mobile-controls-offset, calc(52px + env(safe-area-inset-bottom, 0px)));
+    top: var(--mobile-mint-offset, 56px);
+    bottom: var(--mobile-controls-offset, calc(44px + env(safe-area-inset-bottom, 0px)));
     touch-action: pan-y;
+  }
+
+  body.modal-open-mobile .nft-grid-wrapper {
+    top: 0;
+    bottom: 0;
   }
 
   .nft-cell:active {

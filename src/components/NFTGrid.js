@@ -8,7 +8,7 @@ import { loadMintCache, prefetchMintStatus } from '../services/mintStatusCache';
 import { buildAfaEditorUrl, AFA_CLAIM_URL } from '../constants/editor';
 import {
   TOTAL_TOKENS,
-  DEFAULT_ZOOM,
+  getDefaultZoom,
   computeVisibleRange,
   computeGridLayout,
 } from '../utils/gridLayout';
@@ -16,7 +16,11 @@ import './NFTGrid.css';
 
 const ApeDetailsModal = lazy(() => import('./ApeDetailsModal'));
 
-const initialLayout = computeGridLayout();
+const initialIsMobile = window.innerWidth <= 768;
+const initialLayout = computeGridLayout({
+  zoom: getDefaultZoom(initialIsMobile),
+  isMobile: initialIsMobile,
+});
 const cachedMint = loadMintCache();
 
 function NFTGrid() {
@@ -28,7 +32,7 @@ function NFTGrid() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState(null);
 
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [zoom, setZoom] = useState(() => getDefaultZoom(window.innerWidth <= 768));
   const [showBayc, setShowBayc] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
@@ -144,6 +148,20 @@ function NFTGrid() {
     }
   }, [syncVisibleRange, cellsPerRow, zoom]);
 
+  useEffect(() => {
+    if (!isMobile) return undefined;
+
+    if (modalOpen) {
+      document.body.classList.add('modal-open-mobile');
+    } else {
+      document.body.classList.remove('modal-open-mobile');
+    }
+
+    return () => {
+      document.body.classList.remove('modal-open-mobile');
+    };
+  }, [modalOpen, isMobile]);
+
   const handleGridClick = useCallback((event) => {
     const cell = event.target.closest('[data-token-id]');
     if (!cell) return;
@@ -230,6 +248,7 @@ function NFTGrid() {
         latestMints={latestMints}
         fetchError={fetchError}
         mintDataLoading={mintDataLoading}
+        hidden={modalOpen && isMobile}
       />
 
       <ControlPanel
@@ -239,6 +258,7 @@ function NFTGrid() {
         zoom={zoom}
         showBayc={showBayc}
         isMobile={isMobile}
+        hidden={modalOpen && isMobile}
       />
     </>
   );

@@ -63,18 +63,18 @@ const sliderSx = {
 
 const mobileSliderSx = {
   ...sliderSx,
-  height: 6,
-  py: 1,
-  '& .MuiSlider-track': { height: 6 },
-  '& .MuiSlider-rail': { height: 6 },
+  height: 5,
+  py: 0.75,
+  '& .MuiSlider-track': { height: 5 },
+  '& .MuiSlider-rail': { height: 5 },
   '& .MuiSlider-thumb': {
-    width: 22,
-    height: 22,
-    '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(110, 231, 160, 0.2)' },
-    '&.Mui-active': { boxShadow: '0 0 0 12px rgba(110, 231, 160, 0.28)' },
+    width: 18,
+    height: 18,
+    '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 6px rgba(110, 231, 160, 0.18)' },
+    '&.Mui-active': { boxShadow: '0 0 0 9px rgba(110, 231, 160, 0.24)' },
   },
-  '& .MuiSlider-mark': { width: 5, height: 5 },
-  '& .MuiSlider-markLabel': { fontSize: '10px', mt: 0.75 },
+  '& .MuiSlider-mark': { width: 4, height: 4 },
+  '& .MuiSlider-markLabel': { fontSize: '9px', mt: 0.5 },
 };
 
 const switchSx = {
@@ -86,8 +86,8 @@ const switchSx = {
 
 const mobileSwitchSx = {
   ...switchSx,
-  transform: 'scale(1.05)',
-  mr: -0.5,
+  transform: 'scale(0.92)',
+  mr: -0.25,
 };
 
 const ControlPanel = ({
@@ -97,6 +97,7 @@ const ControlPanel = ({
   zoom = 16,
   showBayc = false,
   isMobile = false,
+  hidden = false,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -116,15 +117,19 @@ const ControlPanel = ({
     if (!isMobile) return undefined;
 
     const root = document.documentElement;
-    root.style.setProperty(
-      '--mobile-controls-offset',
-      isExpanded ? 'min(50dvh, 380px)' : 'calc(52px + env(safe-area-inset-bottom, 0px))'
-    );
+    if (hidden) {
+      root.style.setProperty('--mobile-controls-offset', '0px');
+    } else {
+      root.style.setProperty(
+        '--mobile-controls-offset',
+        isExpanded ? 'min(46dvh, 340px)' : 'calc(44px + env(safe-area-inset-bottom, 0px))'
+      );
+    }
 
     return () => {
       root.style.removeProperty('--mobile-controls-offset');
     };
-  }, [isMobile, isExpanded]);
+  }, [isMobile, isExpanded, hidden]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -160,7 +165,7 @@ const ControlPanel = ({
 
   const panelContent = (
     <>
-      <Box sx={{ mb: isMobile ? 2.5 : 2 }}>
+      <Box sx={{ mb: isMobile ? 2 : 2 }}>
         <Typography sx={isMobile ? mobileSectionLabelSx : sectionLabelSx}>Jump to token</Typography>
         <form onSubmit={handleSearch}>
           <TextField
@@ -192,7 +197,7 @@ const ControlPanel = ({
         </form>
       </Box>
 
-      <Box sx={{ mb: isMobile ? 2.5 : 1.75 }}>
+      <Box sx={{ mb: isMobile ? 2 : 1.75 }}>
         <Typography
           sx={{
             ...(isMobile ? mobileSectionLabelSx : sectionLabelSx),
@@ -226,13 +231,13 @@ const ControlPanel = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            minHeight: 44,
-            px: 0.25,
+            minHeight: 40,
+            px: 0,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <VisibilityIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.45)' }} />
-            <Typography sx={{ fontSize: '0.875rem', color: '#fff', fontWeight: 500 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <VisibilityIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.45)' }} />
+            <Typography sx={{ fontSize: '0.8125rem', color: '#fff', fontWeight: 500 }}>
               Show Original BAYC
             </Typography>
           </Box>
@@ -303,7 +308,7 @@ const ControlPanel = ({
 
   return (
     <Paper
-      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile && isExpanded ? ' expanded' : ''}${isMobile && !isExpanded ? ' collapsed' : ''}`}
+      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile && isExpanded ? ' expanded' : ''}${isMobile && !isExpanded ? ' collapsed' : ''}${hidden ? ' hidden-for-modal' : ''}`}
       elevation={0}
       sx={{
         position: 'fixed',
@@ -312,7 +317,7 @@ const ControlPanel = ({
         right: isMobile ? 0 : 14,
         left: isMobile ? 0 : 'auto',
         width: isMobile ? '100%' : 252,
-        maxHeight: isMobile ? 'min(50dvh, 380px)' : 'calc(100vh - 28px)',
+        maxHeight: isMobile ? 'min(46dvh, 340px)' : 'calc(100vh - 28px)',
         overflow: isMobile && !isExpanded ? 'hidden' : 'auto',
         bgcolor: 'rgba(16, 18, 22, 0.92)',
         backdropFilter: 'blur(18px)',
@@ -321,19 +326,19 @@ const ControlPanel = ({
         borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : undefined,
         zIndex: 1600,
         transition: 'max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease',
-        borderRadius: isMobile ? '18px 18px 0 0' : '12px',
+        borderRadius: isMobile ? '16px 16px 0 0' : '12px',
         boxShadow: isMobile
-          ? '0 -8px 32px rgba(0, 0, 0, 0.42)'
+          ? '0 -4px 24px rgba(0, 0, 0, 0.35)'
           : '0 4px 24px rgba(0, 0, 0, 0.32)',
-        paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom))' : 0,
+        paddingBottom: isMobile ? 'max(8px, env(safe-area-inset-bottom))' : 0,
       }}
     >
       <Box
         className="control-panel-inner"
         sx={{
-          px: isMobile ? 2 : 1.75,
-          pt: isMobile ? 1 : 1.5,
-          pb: isMobile ? 1.25 : 1.5,
+          px: isMobile ? 1.5 : 1.75,
+          pt: isMobile ? 0.5 : 1.5,
+          pb: isMobile ? 0.75 : 1.5,
         }}
       >
         {isMobile && (
@@ -362,8 +367,8 @@ const ControlPanel = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
-            mb: isMobile && !isExpanded ? 0 : 1.5,
-            minHeight: isMobile ? 44 : 28,
+            mb: isMobile && !isExpanded ? 0 : 1.25,
+            minHeight: isMobile ? 36 : 28,
             border: 'none',
             background: 'transparent',
             padding: 0,
@@ -373,11 +378,11 @@ const ControlPanel = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-            <TuneIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }} />
+            <TuneIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }} />
             <Typography
               sx={{
                 color: 'rgba(255,255,255,0.9)',
-                fontSize: '0.875rem',
+                fontSize: '0.8125rem',
                 fontWeight: 600,
               }}
             >
@@ -413,15 +418,15 @@ const ControlPanel = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 flexShrink: 0,
               }}
             >
               {isExpanded ? (
-                <ExpandLessIcon sx={{ fontSize: 22 }} />
+                <ExpandLessIcon sx={{ fontSize: 20 }} />
               ) : (
-                <ExpandMoreIcon sx={{ fontSize: 22 }} />
+                <ExpandMoreIcon sx={{ fontSize: 20 }} />
               )}
             </Box>
           )}

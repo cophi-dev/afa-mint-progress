@@ -1,6 +1,12 @@
 export const TOTAL_TOKENS = 10000;
-export const DEFAULT_ZOOM = 16;
+export const MOBILE_DEFAULT_ZOOM = 16;
+export const DESKTOP_DEFAULT_ZOOM = 64;
+/** @deprecated use getDefaultZoom() */
+export const DEFAULT_ZOOM = MOBILE_DEFAULT_ZOOM;
 export const OVERSCAN_ROWS = 1;
+
+export const getDefaultZoom = (isMobile = window.innerWidth <= 768) =>
+  (isMobile ? MOBILE_DEFAULT_ZOOM : DESKTOP_DEFAULT_ZOOM);
 
 export const computeVisibleRange = (scrollTop, viewportHeight, zoom, totalRows) => {
   const rowHeight = zoom;

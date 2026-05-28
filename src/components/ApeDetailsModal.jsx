@@ -20,9 +20,12 @@ const style = {
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: { xs: 'calc(100% - 20px)', md: '90%' },
+  width: { xs: 'calc(100% - 16px)', md: '90%' },
   maxWidth: '920px',
-  maxHeight: { xs: 'min(92dvh, 720px)', md: '90vh' },
+  maxHeight: {
+    xs: 'calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)))',
+    md: '90vh',
+  },
   bgcolor: '#1E1E1E',
   borderRadius: { xs: '14px', md: '16px' },
   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -30,6 +33,8 @@ const style = {
   overflow: 'hidden',
   p: 0,
   outline: 'none',
+  display: 'flex',
+  flexDirection: 'column',
 };
 
 const cardStyle = {
@@ -37,7 +42,9 @@ const cardStyle = {
   boxShadow: 'none',
   display: 'flex',
   flexDirection: { xs: 'column', md: 'row' },
-  maxHeight: { xs: 'min(92dvh, 720px)', md: '90vh' },
+  flex: 1,
+  minHeight: 0,
+  maxHeight: '100%',
   overflow: { xs: 'auto', md: 'hidden' },
   WebkitOverflowScrolling: 'touch',
 };
@@ -46,7 +53,8 @@ const imageContainerStyle = {
   flexShrink: 0,
   width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
   maxWidth: { md: '480px' },
-  aspectRatio: '1',
+  height: { xs: 'min(38dvh, 320px)', md: 'auto' },
+  aspectRatio: { xs: 'auto', md: '1' },
   position: 'relative',
   backgroundColor: '#000',
   overflow: 'hidden',
@@ -71,13 +79,13 @@ const infoBoxStyle = {
 const contentStyle = {
   flex: 1,
   minWidth: 0,
+  minHeight: 0,
   bgcolor: '#2A2A2A',
-  p: { xs: 2, md: 3 },
+  p: { xs: 1.75, md: 3 },
   display: 'flex',
   flexDirection: 'column',
-  gap: { xs: 1.5, md: 2 },
+  gap: { xs: 1.25, md: 2 },
   overflowY: { xs: 'visible', md: 'auto' },
-  maxHeight: { xs: 'none', md: '90vh' },
 };
 
 const arrowButtonStyle = {
@@ -231,17 +239,28 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       onClose={onClose}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
+      sx={{ zIndex: 1700 }}
+      BackdropProps={{
+        sx: {
+          backgroundColor: 'rgba(0, 0, 0, 0.78)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+        },
+      }}
     >
       <Box sx={style}>
         <IconButton
           onClick={onClose}
+          aria-label="Close details"
           sx={{
             position: 'absolute',
-            right: 8,
-            top: 8,
+            right: { xs: 6, md: 8 },
+            top: { xs: 6, md: 8 },
             color: 'white',
-            zIndex: 1,
-            bgcolor: 'rgba(0,0,0,0.5)',
+            zIndex: 2,
+            width: { xs: 40, md: 'auto' },
+            height: { xs: 40, md: 'auto' },
+            bgcolor: 'rgba(0,0,0,0.55)',
             '&:hover': {
               bgcolor: 'rgba(0,0,0,0.7)',
             },
@@ -323,8 +342,9 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               sx={{
                 color: 'white',
                 position: 'absolute',
-                top: 16,
-                left: 16,
+                top: { xs: 12, md: 16 },
+                left: { xs: 12, md: 16 },
+                fontSize: { xs: '0.875rem', md: '1.25rem' },
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 1,
               }}
@@ -336,7 +356,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               disabled={activeStep === 0}
               sx={{
                 ...arrowButtonStyle,
-                left: 16,
+                left: { xs: 8, md: 16 },
               }}
             >
               <KeyboardArrowLeft />
@@ -346,7 +366,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               disabled={activeStep === maxSteps - 1}
               sx={{
                 ...arrowButtonStyle,
-                right: 16,
+                right: { xs: 8, md: 16 },
               }}
             >
               <KeyboardArrowRight />
@@ -360,6 +380,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 sx={{
                   fontWeight: 700,
                   color: '#fff',
+                  fontSize: { xs: '1.125rem', md: '1.5rem' },
                 }}
               >
                 AFA #{apeData.tokenId}
@@ -488,7 +509,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: 0.5,
-                  maxHeight: 140,
+                  maxHeight: { xs: 120, md: 140 },
                   overflowY: 'auto',
                   pr: 0.5,
                   '&::-webkit-scrollbar': { width: 4 },

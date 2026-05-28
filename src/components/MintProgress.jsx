@@ -7,7 +7,7 @@ import { getAfaIpfsUrl } from '../utils/imageUrls';
 
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 
-const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading }) => {
+const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768);
 
@@ -25,15 +25,19 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
     if (!isMobile) return undefined;
 
     const root = document.documentElement;
-    root.style.setProperty(
-      '--mobile-mint-offset',
-      isCollapsed ? '72px' : 'min(42vh, 320px)'
-    );
+    if (hidden) {
+      root.style.setProperty('--mobile-mint-offset', '0px');
+    } else {
+      root.style.setProperty(
+        '--mobile-mint-offset',
+        isCollapsed ? '56px' : 'min(38vh, 280px)'
+      );
+    }
 
     return () => {
       root.style.removeProperty('--mobile-mint-offset');
     };
-  }, [isMobile, isCollapsed]);
+  }, [isMobile, isCollapsed, hidden]);
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
@@ -50,7 +54,7 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
   const recentMints = latestMints.slice(0, 3);
 
   const content = (
-    <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
+    <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}${hidden ? ' hidden-for-modal' : ''}`}>
       <Box
         className="drag-handle"
         component={isMobile ? 'button' : 'div'}
@@ -70,26 +74,26 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          minHeight: isMobile ? 48 : 'auto',
-          py: isMobile ? 0.25 : 0,
+          minHeight: isMobile ? 36 : 'auto',
+          py: isMobile ? 0 : 0,
         }}>
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: isMobile ? 1.25 : 1,
+            gap: isMobile ? 1 : 1,
             flex: 1,
             minWidth: 0,
           }}>
             <TrendingUp sx={{
               color: '#6ee7a0',
-              fontSize: isMobile ? '20px' : '18px',
+              fontSize: isMobile ? '17px' : '18px',
               flexShrink: 0,
             }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
                 sx={{
                   color: '#fff',
-                  fontSize: isMobile ? '0.875rem' : '15px',
+                  fontSize: isMobile ? '0.8125rem' : '15px',
                   fontWeight: 600,
                   lineHeight: 1.2,
                   fontVariantNumeric: 'tabular-nums',
@@ -108,8 +112,8 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
                 )}
               </Typography>
               <Box sx={{
-                mt: 0.75,
-                height: isMobile ? 4 : 3,
+                mt: isMobile ? 0.5 : 0.75,
+                height: 3,
                 borderRadius: 2,
                 bgcolor: 'rgba(255,255,255,0.08)',
                 overflow: 'hidden',
@@ -135,11 +139,12 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
               e.stopPropagation();
               setIsCollapsed(!isCollapsed);
             }}
-            size={isMobile ? 'medium' : 'small'}
+            size="small"
             sx={{
               color: 'rgba(255,255,255,0.45)',
-              minWidth: isMobile ? 40 : 'auto',
-              minHeight: isMobile ? 40 : 'auto',
+              minWidth: isMobile ? 32 : 'auto',
+              minHeight: isMobile ? 32 : 'auto',
+              p: isMobile ? 0.5 : undefined,
               borderRadius: 1.5,
               flexShrink: 0,
               '&:hover': {
@@ -149,8 +154,8 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading })
             }}
           >
             {isCollapsed
-              ? <ExpandMore sx={{ fontSize: isMobile ? '22px' : '20px' }} />
-              : <ExpandLess sx={{ fontSize: isMobile ? '22px' : '20px' }} />}
+              ? <ExpandMore sx={{ fontSize: isMobile ? '20px' : '20px' }} />
+              : <ExpandLess sx={{ fontSize: isMobile ? '20px' : '20px' }} />}
           </IconButton>
         </Box>
       </Box>

@@ -11,19 +11,19 @@
 }
 
 .control-panel.mobile.collapsed {
-  max-height: calc(52px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: calc(44px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .control-panel.mobile.expanded {
-  max-height: min(50dvh, 380px) !important;
+  max-height: min(46dvh, 340px) !important;
 }
 
 .control-panel-drag-handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.28);
+  width: 32px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  margin: 0 auto 10px;
+  margin: 0 auto 6px;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -35,9 +35,9 @@
 .control-panel-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: rgba(255, 255, 255, 0.75);
@@ -71,18 +71,26 @@
 
 @media (max-width: 768px) {
   .control-panel.mobile {
-    border-radius: 18px 18px 0 0 !important;
+    border-radius: 16px 16px 0 0 !important;
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
     bottom: 0 !important;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.42) !important;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35) !important;
     border: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-user-select: none;
     user-select: none;
     touch-action: manipulation;
+    transition: opacity 0.22s ease, visibility 0.22s ease, transform 0.22s ease;
+  }
+
+  .control-panel.mobile.hidden-for-modal {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(100%) !important;
   }
 
   .control-panel.mobile .control-panel-inner {
@@ -90,12 +98,12 @@
   }
 
   .control-panel .MuiIconButton-root {
-    min-width: 44px !important;
-    min-height: 44px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 
   .control-panel .MuiInputBase-root {
-    min-height: 48px !important;
+    min-height: 44px !important;
   }
 
   .control-panel .MuiIconButton-root:focus-visible,
@@ -124,6 +132,6 @@
 
 @media (max-width: 480px) {
   .control-panel.mobile.expanded {
-    max-height: min(55dvh, 360px) !important;
+    max-height: min(50dvh, 320px) !important;
   }
 }

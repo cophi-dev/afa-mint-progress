@@ -32,28 +32,36 @@
   .mint-progress.mobile {
     position: fixed !important;
     transform: none !important;
-    width: calc(100% - 20px) !important;
-    left: 10px !important;
-    right: 10px !important;
+    width: calc(100% - 24px) !important;
+    left: 12px !important;
+    right: 12px !important;
     bottom: auto !important;
-    top: max(10px, env(safe-area-inset-top, 0px)) !important;
-    padding: 10px 14px !important;
-    border-radius: 14px !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.38) !important;
+    top: max(8px, env(safe-area-inset-top, 0px)) !important;
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.32) !important;
     z-index: 1500 !important;
     animation: slideDown 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     touch-action: manipulation;
-    max-height: min(42vh, 320px);
+    max-height: min(38vh, 280px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    transition: opacity 0.22s ease, visibility 0.22s ease, transform 0.22s ease;
+  }
+
+  .mint-progress.mobile.hidden-for-modal {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(-110%) !important;
   }
 
   .mint-progress.mobile.collapsed {
-    padding: 10px 12px !important;
+    padding: 7px 10px !important;
     width: auto !important;
-    left: 10px !important;
+    left: 12px !important;
     right: auto !important;
-    max-width: calc(100% - 20px) !important;
+    max-width: calc(100% - 24px) !important;
     max-height: none;
     overflow: visible;
   }
@@ -63,8 +71,8 @@
   }
 
   .mint-progress.mobile .MuiIconButton-root {
-    min-width: 40px !important;
-    min-height: 40px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
   }
 
   .mint-progress.mobile .drag-handle:focus-visible {
@@ -87,12 +95,12 @@
 
 @media (max-width: 480px) {
   .mint-progress.mobile {
-    width: calc(100% - 16px) !important;
-    left: 8px !important;
+    width: calc(100% - 20px) !important;
+    left: 10px !important;
   }
 
   .mint-progress.mobile.collapsed {
-    left: 8px !important;
-    max-width: calc(100% - 16px) !important;
+    left: 10px !important;
+    max-width: calc(100% - 20px) !important;
   }
 }
