@@ -17,6 +17,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
+import TraitFilter from './TraitFilter';
 import './ControlPanel.css';
 
 const sectionLabelSx = {
@@ -98,10 +99,21 @@ const ControlPanel = ({
   showBayc = false,
   isMobile = false,
   hidden = false,
+  traitFilters = {},
+  onTraitFiltersChange,
+  traitCatalog = null,
+  traitCatalogLoading = false,
+  onTraitFilterOpen,
+  filteredMatchCount = null,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
+
+  const activeTraitCount = Object.values(traitFilters).reduce(
+    (sum, values) => sum + (values?.length ?? 0),
+    0
+  );
 
   useEffect(() => {
     if (isMobile) {
@@ -122,7 +134,7 @@ const ControlPanel = ({
     } else {
       root.style.setProperty(
         '--mobile-controls-offset',
-        isExpanded ? 'min(46dvh, 340px)' : 'calc(44px + env(safe-area-inset-bottom, 0px))'
+        isExpanded ? 'min(52dvh, 380px)' : 'calc(44px + env(safe-area-inset-bottom, 0px))'
       );
     }
 
@@ -268,6 +280,18 @@ const ControlPanel = ({
           sx={{ m: 0, color: '#fff' }}
         />
       )}
+
+      <Box sx={{ mt: isMobile ? 1.5 : 1.25, pt: isMobile ? 1.5 : 1.25, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <TraitFilter
+          catalog={traitCatalog}
+          filters={traitFilters}
+          onChange={onTraitFiltersChange}
+          matchCount={filteredMatchCount}
+          loading={traitCatalogLoading}
+          isMobile={isMobile}
+          onExpand={onTraitFilterOpen}
+        />
+      </Box>
     </>
   );
 
@@ -316,8 +340,8 @@ const ControlPanel = ({
         bottom: isMobile ? 0 : 'auto',
         right: isMobile ? 0 : 14,
         left: isMobile ? 0 : 'auto',
-        width: isMobile ? '100%' : 252,
-        maxHeight: isMobile ? 'min(46dvh, 340px)' : 'calc(100vh - 28px)',
+        width: isMobile ? '100%' : 268,
+        maxHeight: isMobile ? 'min(52dvh, 380px)' : 'calc(100vh - 28px)',
         overflow: isMobile && !isExpanded ? 'hidden' : 'auto',
         bgcolor: 'rgba(16, 18, 22, 0.92)',
         backdropFilter: 'blur(18px)',
@@ -392,6 +416,11 @@ const ControlPanel = ({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5 }}>
                 <Box className="control-panel-badge">{zoom}px</Box>
                 {showBayc && <Box className="control-panel-badge accent">BAYC</Box>}
+                {activeTraitCount > 0 && (
+                  <Box className="control-panel-badge accent">
+                    {filteredMatchCount ?? 0}
+                  </Box>
+                )}
               </Box>
             )}
           </Box>

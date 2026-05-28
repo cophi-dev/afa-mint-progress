@@ -13,22 +13,24 @@ const VirtualGrid = memo(({
   showBayc,
   selectedTokenId,
   totalTokens = TOTAL_TOKENS,
+  tokenIdList = null,
 }) => {
   const visibleTokenIds = useMemo(() => {
     const ids = [];
     const { startRow, endRow } = visibleRange;
     for (let row = startRow; row < endRow; row++) {
       for (let col = 0; col < cellsPerRow; col++) {
-        const id = row * cellsPerRow + col;
-        if (id >= totalTokens) break;
-        ids.push(id);
+        const index = row * cellsPerRow + col;
+        if (index >= totalTokens) break;
+        const tokenId = tokenIdList ? tokenIdList[index] : index;
+        if (tokenId !== undefined) ids.push(tokenId);
       }
     }
     return ids;
-  }, [visibleRange, cellsPerRow, totalTokens]);
+  }, [visibleRange, cellsPerRow, totalTokens, tokenIdList]);
 
   const { startRow } = visibleRange;
-  const eagerCutoff = visibleTokenIds[0] + EAGER_IMAGE_COUNT;
+  const eagerCutoff = (visibleTokenIds[0] ?? 0) + EAGER_IMAGE_COUNT;
 
   return (
     <div

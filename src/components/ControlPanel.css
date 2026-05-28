@@ -3,7 +3,7 @@
 }
 
 .control-panel.desktop {
-  max-width: 252px;
+  max-width: 268px;
 }
 
 .control-panel-trigger {
@@ -15,7 +15,7 @@
 }
 
 .control-panel.mobile.expanded {
-  max-height: min(46dvh, 340px) !important;
+  max-height: min(52dvh, 380px) !important;
 }
 
 .control-panel-drag-handle {
@@ -132,6 +132,6 @@
 
 @media (max-width: 480px) {
   .control-panel.mobile.expanded {
-    max-height: min(50dvh, 320px) !important;
+    max-height: min(54dvh, 360px) !important;
   }
 }

@@ -3,7 +3,7 @@ import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import VirtualGrid from './VirtualGrid';
 import { getAfaThumbnailUrl, getBaycThumbnailUrl } from '../utils/imageUrls';
-import { loadBaycMapping } from '../data/baycMetadata';
+import { loadBaycMapping, getTraitCatalog, filterTokenIds } from '../data/baycMetadata';
 import { loadMintCache, prefetchMintStatus } from '../services/mintStatusCache';
 import { buildAfaEditorUrl, AFA_CLAIM_URL } from '../constants/editor';
 import {
@@ -34,6 +34,9 @@ function NFTGrid() {
 
   const [zoom, setZoom] = useState(() => getDefaultZoom(window.innerWidth <= 768));
   const [showBayc, setShowBayc] = useState(false);
+  const [traitFilters, setTraitFilters] = useState({});
+  const [traitCatalog, setTraitCatalog] = useState(null);
+  const [traitCatalogLoading, setTraitCatalogLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [visibleRange, setVisibleRange] = useState(initialLayout.visibleRange);
@@ -44,6 +47,13 @@ function NFTGrid() {
   const mintedCount = mintedStatus.size;
 
   mintedStatusRef.current = mintedStatus;
+
+  const filteredTokenIds = useMemo(
+    () => filterTokenIds(traitFilters),
+    [traitFilters]
+  );
+
+  const displayTokenCount = filteredTokenIds?.length ?? TOTAL_TOKENS;
 
   const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
     const padding = isMobile ? 10 : 40;
@@ -62,10 +72,10 @@ function NFTGrid() {
     const actualGridWidth = isMobile
       ? Math.min(cellsPerRow * zoom, availableWidth)
       : cellsPerRow * zoom;
-    const totalRows = Math.ceil(TOTAL_TOKENS / cellsPerRow);
+    const totalRows = Math.ceil(displayTokenCount / cellsPerRow);
 
     return { gridWidth: actualGridWidth, cellsPerRow, totalRows };
-  }, [zoom, screenWidth, isMobile]);
+  }, [zoom, screenWidth, isMobile, displayTokenCount]);
 
   const syncVisibleRange = useCallback((scrollTop, viewportHeight) => {
     const next = computeVisibleRange(scrollTop, viewportHeight, zoom, totalRows);
@@ -194,12 +204,18 @@ function NFTGrid() {
     const el = gridRef.current;
     if (!el) return;
 
-    const row = Math.floor(tokenId / cellsPerRow);
+    let displayIndex = tokenId;
+    if (filteredTokenIds) {
+      displayIndex = filteredTokenIds.indexOf(tokenId);
+      if (displayIndex === -1) return;
+    }
+
+    const row = Math.floor(displayIndex / cellsPerRow);
     const targetScroll = Math.max(0, row * zoom - el.clientHeight / 2);
     el.scrollTo({ top: targetScroll, behavior: 'smooth' });
     setSelectedTokenId(tokenId);
     setTimeout(() => setSelectedTokenId(null), 3000);
-  }, [cellsPerRow, zoom]);
+  }, [cellsPerRow, zoom, filteredTokenIds]);
 
   const handleZoomChange = useCallback((newZoom) => {
     setZoom(newZoom);
@@ -210,6 +226,20 @@ function NFTGrid() {
     if (show) loadBaycMapping();
   }, []);
 
+  const handleTraitFiltersChange = useCallback((nextFilters) => {
+    setTraitFilters(nextFilters);
+    const el = gridRef.current;
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleTraitFilterOpen = useCallback(() => {
+    if (traitCatalog || traitCatalogLoading) return;
+    setTraitCatalogLoading(true);
+    loadBaycMapping()
+      .then(() => setTraitCatalog(getTraitCatalog()))
+      .finally(() => setTraitCatalogLoading(false));
+  }, [traitCatalog, traitCatalogLoading]);
+
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedTokenId(null);
@@ -219,7 +249,7 @@ function NFTGrid() {
     <>
       <div className="nft-grid-wrapper" ref={gridRef}>
         <div
-          className="nft-grid"
+          className={`nft-grid${filteredTokenIds ? ' filtered' : ''}`}
           onClick={handleGridClick}
           style={{
             width: gridWidth,
@@ -227,6 +257,11 @@ function NFTGrid() {
             margin: '0 auto',
           }}
         >
+          {filteredTokenIds?.length === 0 && (
+            <div className="nft-grid-empty">
+              <p>No apes match the selected traits.</p>
+            </div>
+          )}
           <VirtualGrid
             visibleRange={visibleRange}
             cellsPerRow={cellsPerRow}
@@ -235,6 +270,8 @@ function NFTGrid() {
             mintedStatus={mintedStatus}
             showBayc={showBayc}
             selectedTokenId={selectedTokenId}
+            totalTokens={displayTokenCount}
+            tokenIdList={filteredTokenIds}
           />
         </div>
       </div>
@@ -264,6 +301,12 @@ function NFTGrid() {
         showBayc={showBayc}
         isMobile={isMobile}
         hidden={modalOpen && isMobile}
+        traitFilters={traitFilters}
+        onTraitFiltersChange={handleTraitFiltersChange}
+        traitCatalog={traitCatalog}
+        traitCatalogLoading={traitCatalogLoading}
+        onTraitFilterOpen={handleTraitFilterOpen}
+        filteredMatchCount={filteredTokenIds?.length ?? null}
       />
     </>
   );
