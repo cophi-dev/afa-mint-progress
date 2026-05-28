@@ -4,7 +4,9 @@ import {
   getAfaThumbnailFallbackUrl,
   getBaycThumbnailUrl,
   getBaycThumbnailFallbackUrl,
-  getAfaIpfsUrl,
+  ipfsToHttpUrl,
+  setAfaIpfsImageSrc,
+  tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
 import { getBaycMetadataAsync } from '../data/baycMetadata';
 import { markImageCached } from '../utils/imageCache';
@@ -42,7 +44,7 @@ const NFTCell = memo(({
       img.dataset.fallbackStage = 'bayc-done';
       const metadata = await getBaycMetadataAsync(tokenId);
       if (metadata?.image) {
-        const baycFallback = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        const baycFallback = ipfsToHttpUrl(metadata.image);
         markImageCached(baycFallback);
         img.src = baycFallback;
       }
@@ -50,13 +52,17 @@ const NFTCell = memo(({
     }
 
     // Unminted AFAs: thumbnails only — never load high-res IPFS.
-    if (!isMinted || img.dataset.fallbackStage === 'ipfs') return;
+    if (!isMinted) return;
+
+    if (img.dataset.fallbackStage === 'ipfs') {
+      if (await tryNextAfaIpfsGateway(img, tokenId, true)) return;
+      return;
+    }
 
     img.dataset.fallbackStage = 'ipfs';
-    const ipfsUrl = await getAfaIpfsUrl(tokenId, true);
+    const ipfsUrl = await setAfaIpfsImageSrc(img, tokenId, true);
     if (ipfsUrl) {
       markImageCached(ipfsUrl);
-      img.src = ipfsUrl;
     }
   };
 
