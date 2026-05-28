@@ -45,6 +45,27 @@ html, body, #root {
   background: var(--bg-primary);
   max-width: 100%;
   contain: layout style;
+  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nft-grid.filtered .nft-grid-visible {
+  transition: opacity 0.22s ease;
+}
+
+.nft-grid-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.nft-grid-empty p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
 }
 
 .nft-grid-visible {
