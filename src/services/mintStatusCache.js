@@ -1,6 +1,5 @@
 import { getAllTransactions, processNFTStatuses } from './etherscanService';
-
-const CACHE_KEY = 'afa-mint-status-v1';
+import { MINT_STATUS_CACHE_KEY } from '../constants/appCache';
 
 let fetchPromise = null;
 
@@ -15,7 +14,7 @@ const buildLatestMints = (statuses) =>
 
 export const loadMintCache = () => {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(MINT_STATUS_CACHE_KEY);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
@@ -38,7 +37,7 @@ export const loadMintCache = () => {
 const saveMintCache = (statuses, latestMints) => {
   try {
     localStorage.setItem(
-      CACHE_KEY,
+      MINT_STATUS_CACHE_KEY,
       JSON.stringify({
         savedAt: Date.now(),
         entries: Array.from(statuses.entries()),

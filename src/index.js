@@ -1,3 +1,4 @@
+import './appCacheBootstrap';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { prefetchMintStatus } from './services/mintStatusCache';
