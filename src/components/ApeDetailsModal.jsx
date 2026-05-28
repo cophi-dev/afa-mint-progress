@@ -7,7 +7,13 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import { getBaycMetadataAsync, loadBaycMapping } from '../data/baycMetadata';
-import { getAfaIpfsUrl, getAfaThumbnailFallbackUrl, preloadImage } from '../utils/imageUrls';
+import {
+  getAfaIpfsUrl,
+  getAfaThumbnailFallbackUrl,
+  getBaycThumbnailFallbackUrl,
+  ipfsToHttpUrl,
+  preloadImage,
+} from '../utils/imageUrls';
 
 const style = {
   position: 'absolute',
@@ -136,6 +142,13 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
       preloadImage(baycImage);
 
+      const baycHighRes = ipfsToHttpUrl(metadata?.image);
+      if (!cancelled && baycHighRes) {
+        preloadImage(baycHighRes).then(() => {
+          if (!cancelled) setBaycImageUrl(baycHighRes);
+        });
+      }
+
       if (isMinted) {
         const ipfsUrl = await getAfaIpfsUrl(tokenId, true);
         if (!cancelled && ipfsUrl) {
@@ -198,13 +211,18 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       return;
     }
 
+    if (stage === 'webp') {
+      img.dataset.fallbackStage = 'png';
+      img.src = getBaycThumbnailFallbackUrl(apeData.tokenId);
+      return;
+    }
+
     if (img.dataset.fallbackStage === 'bayc-done') return;
     img.dataset.fallbackStage = 'bayc-done';
 
     const metadata = baycMetadata ?? await getBaycMetadataAsync(apeData.tokenId);
-    if (metadata?.image) {
-      img.src = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
-    }
+    const baycHighRes = ipfsToHttpUrl(metadata?.image);
+    if (baycHighRes) img.src = baycHighRes;
   };
 
   return (
