@@ -2,26 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
-// No longer need to import placeholder image constants - using local images directly
 import './MintProgress.css';
-import imageCids from '../data/image_cids.json';
+import { getAfaIpfsUrl } from '../utils/imageUrls';
 
 const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
 
-const MintProgress = ({ mintedCount, latestMints, fetchError }) => {
+const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768); // Auto-collapse on mobile initially
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      // Keep current state on resize, don't force changes
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+
+    const root = document.documentElement;
+    root.style.setProperty(
+      '--mobile-mint-offset',
+      isCollapsed ? '72px' : 'min(42vh, 320px)'
+    );
+
+    return () => {
+      root.style.removeProperty('--mobile-mint-offset');
+    };
+  }, [isMobile, isCollapsed]);
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
@@ -39,40 +51,65 @@ const MintProgress = ({ mintedCount, latestMints, fetchError }) => {
 
   const content = (
     <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
-      <Box className="drag-handle">
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+      <Box
+        className="drag-handle"
+        component={isMobile ? 'button' : 'div'}
+        type={isMobile ? 'button' : undefined}
+        onClick={isMobile ? () => setIsCollapsed(!isCollapsed) : undefined}
+        sx={{
+          border: 'none',
+          background: 'transparent',
+          width: '100%',
+          padding: 0,
+          textAlign: 'left',
+          cursor: isMobile ? 'pointer' : 'move',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          minHeight: isMobile ? 56 : 'auto',
-          py: isMobile ? 1 : 0
+          minHeight: isMobile ? 48 : 'auto',
+          py: isMobile ? 0.25 : 0,
         }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: isMobile ? 1.5 : 1,
-            flex: 1
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? 1.25 : 1,
+            flex: 1,
+            minWidth: 0,
           }}>
-            <TrendingUp sx={{ 
-              color: '#6ee7a0', 
-              fontSize: isMobile ? '22px' : '18px',
+            <TrendingUp sx={{
+              color: '#6ee7a0',
+              fontSize: isMobile ? '20px' : '18px',
               flexShrink: 0,
             }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography 
-                sx={{ 
-                  color: '#fff', 
-                  fontSize: isMobile ? '16px' : '15px',
+              <Typography
+                sx={{
+                  color: '#fff',
+                  fontSize: isMobile ? '0.875rem' : '15px',
                   fontWeight: 600,
                   lineHeight: 1.2,
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {mintedCount.toLocaleString()} / 10,000 minted
+                {mintDataLoading && mintedCount === 0
+                  ? 'Syncing mint data…'
+                  : `${mintedCount.toLocaleString()} / 10,000 minted`}
+                {mintDataLoading && mintedCount > 0 && (
+                  <Box
+                    component="span"
+                    sx={{ ml: 0.75, color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}
+                  >
+                    · updating
+                  </Box>
+                )}
               </Typography>
-              <Box sx={{ 
+              <Box sx={{
                 mt: 0.75,
-                height: 3,
+                height: isMobile ? 4 : 3,
                 borderRadius: 2,
                 bgcolor: 'rgba(255,255,255,0.08)',
                 overflow: 'hidden',
@@ -92,58 +129,42 @@ const MintProgress = ({ mintedCount, latestMints, fetchError }) => {
               )}
             </Box>
           </Box>
-          
+
           <IconButton
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            size={isMobile ? "medium" : "small"}
-            sx={{ 
-              color: '#999',
-              minWidth: isMobile ? 48 : 'auto',
-              minHeight: isMobile ? 48 : 'auto',
-              borderRadius: isMobile ? 2 : 1,
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCollapsed(!isCollapsed);
+            }}
+            size={isMobile ? 'medium' : 'small'}
+            sx={{
+              color: 'rgba(255,255,255,0.45)',
+              minWidth: isMobile ? 40 : 'auto',
+              minHeight: isMobile ? 40 : 'auto',
+              borderRadius: 1.5,
+              flexShrink: 0,
               '&:hover': {
                 color: '#fff',
-                bgcolor: 'rgba(255, 255, 255, 0.1)'
-              }
+                bgcolor: 'rgba(255, 255, 255, 0.08)',
+              },
             }}
           >
-            {isCollapsed ? 
-              <ExpandMore sx={{ fontSize: isMobile ? '24px' : '20px' }} /> : 
-              <ExpandLess sx={{ fontSize: isMobile ? '24px' : '20px' }} />
-            }
+            {isCollapsed
+              ? <ExpandMore sx={{ fontSize: isMobile ? '22px' : '20px' }} />
+              : <ExpandLess sx={{ fontSize: isMobile ? '22px' : '20px' }} />}
           </IconButton>
         </Box>
       </Box>
-      
-      {/* Collapsed state indicator for mobile */}
-      {isMobile && isCollapsed && (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          py: 1,
-          color: '#666',
-          fontSize: '12px'
-        }}>
-          <Typography sx={{ 
-            fontSize: '12px', 
-            color: '#666',
-            fontFamily: 'monospace'
-          }}>
-            Tap to view latest mints
-          </Typography>
-        </Box>
-      )}
 
-      <Collapse in={!isCollapsed}>
-        <Box sx={{ mt: isMobile ? 3 : 2 }}>
+      <Collapse in={!isCollapsed} timeout={260}>
+        <Box sx={{ mt: isMobile ? 1.5 : 2, pb: isMobile ? 0.25 : 0 }}>
           <Typography
             sx={{
-              color: '#666',
-              mb: isMobile ? 2 : 1,
-              fontSize: isMobile ? '16px' : '14px',
-              fontFamily: 'monospace',
-              fontWeight: 500
+              color: 'rgba(255,255,255,0.45)',
+              mb: isMobile ? 1.25 : 1,
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
             }}
           >
             Latest Mints
@@ -164,70 +185,73 @@ const MintProgress = ({ mintedCount, latestMints, fetchError }) => {
                 }
               }}
             >
-              <Box 
+              <Box
                 className="mint-entry"
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: isMobile ? 2 : 1.5,
-                  p: isMobile ? 1.5 : 0.75,
-                  borderRadius: isMobile ? 2 : 1,
-                  transition: 'all 0.2s ease-in-out',
-                  minHeight: isMobile ? 64 : 'auto',
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: isMobile ? 1.5 : 1.5,
+                  p: isMobile ? 1.25 : 0.75,
+                  borderRadius: isMobile ? 1.5 : 1,
+                  transition: 'background 0.2s ease',
+                  minHeight: isMobile ? 56 : 'auto',
+                  bgcolor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    bgcolor: 'rgba(255, 255, 255, 0.08)',
                     transform: isMobile ? 'none' : 'translateY(-1px)',
                   },
                   '&:active': {
-                    transform: isMobile ? 'scale(0.98)' : 'none',
-                  }
+                    transform: isMobile ? 'scale(0.99)' : 'none',
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                  },
                 }}
               >
-                <Box 
+                <Box
                   component="img"
-                  src={`/images/${mint.tokenId}.png`}
+                  src={`/images/${mint.tokenId}.webp`}
                   alt={`AFA #${mint.tokenId}`}
                   sx={{
-                    width: isMobile ? 48 : 36,
-                    height: isMobile ? 48 : 36,
+                    width: isMobile ? 44 : 36,
+                    height: isMobile ? 44 : 36,
                     borderRadius: isMobile ? '8px' : '6px',
                     objectFit: 'cover',
                     flexShrink: 0,
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
-                  onError={(e) => {
-                    // If local image fails, try IPFS as fallback
-                    if (!e.target.dataset.triedIpfs && imageCids[mint.tokenId]) {
-                      e.target.dataset.triedIpfs = 'true';
-                      e.target.src = `https://ipfs.io/ipfs/${imageCids[mint.tokenId]}`;
+                  onError={async (e) => {
+                    const img = e.target;
+                    if (img.dataset.fallback === 'png') {
+                      img.dataset.fallback = 'ipfs';
+                      const ipfsUrl = await getAfaIpfsUrl(mint.tokenId, true);
+                      if (ipfsUrl) img.src = ipfsUrl;
                       return;
                     }
-                    
-                    // If both local and IPFS fail, the broken image will be handled by browser
+                    img.dataset.fallback = 'png';
+                    img.src = `/images/${mint.tokenId}.png`;
                   }}
                 />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography 
-                    sx={{ 
-                      color: '#999',
-                      fontSize: isMobile ? '16px' : '14px',
-                      fontFamily: 'monospace',
-                      fontWeight: 500,
+                  <Typography
+                    sx={{
+                      color: '#fff',
+                      fontSize: isMobile ? '0.875rem' : '14px',
+                      fontWeight: 600,
                       lineHeight: 1.3,
-                      mb: isMobile ? 0.5 : 0
+                      mb: isMobile ? 0.25 : 0,
                     }}
                   >
-                    Token #{mint.tokenId}
+                    #{mint.tokenId}
                   </Typography>
-                  <Typography 
-                    sx={{ 
-                      color: '#666',
-                      fontSize: isMobile ? '14px' : '12px',
-                      fontFamily: 'monospace',
+                  <Typography
+                    sx={{
+                      color: 'rgba(255,255,255,0.45)',
+                      fontSize: isMobile ? '0.75rem' : '12px',
+                      fontVariantNumeric: 'tabular-nums',
                       lineHeight: 1.2,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     {formatDate(mint.timestamp)}

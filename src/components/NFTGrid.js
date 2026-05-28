@@ -1,45 +1,45 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { getAllTransactions, processNFTStatuses } from '../services/etherscanService';
-import ApeDetailsModal from './ApeDetailsModal';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
-import NFTCell from './NFTCell';
-import imageCids from '../data/image_cids.json';
+import VirtualGrid from './VirtualGrid';
+import { getAfaThumbnailUrl, getBaycThumbnailUrl } from '../utils/imageUrls';
+import { loadBaycMapping } from '../data/baycMetadata';
+import { loadMintCache, prefetchMintStatus } from '../services/mintStatusCache';
 import { buildAfaEditorUrl, AFA_CLAIM_URL } from '../constants/editor';
+import {
+  TOTAL_TOKENS,
+  DEFAULT_ZOOM,
+  computeVisibleRange,
+  computeGridLayout,
+} from '../utils/gridLayout';
 import './NFTGrid.css';
 
-const BAYC_CONTRACT = '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
-const TOTAL_TOKENS = 10000;
-const OVERSCAN_ROWS = 2;
+const ApeDetailsModal = lazy(() => import('./ApeDetailsModal'));
 
-const getAfaImageUrl = (tokenId, highRes = false) => {
-  if (highRes) {
-    const cid = imageCids[tokenId];
-    if (cid) return `https://ipfs.io/ipfs/${cid}`;
-  }
-  return `/images/${tokenId}.png`;
-};
+const initialLayout = computeGridLayout();
+const cachedMint = loadMintCache();
 
 function NFTGrid() {
-  const [mintedStatus, setMintedStatus] = useState(new Map());
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [latestMints, setLatestMints] = useState([]);
+  const [mintedStatus, setMintedStatus] = useState(() => cachedMint?.statuses ?? new Map());
+  const [mintDataLoading, setMintDataLoading] = useState(!cachedMint);
+  const [latestMints, setLatestMints] = useState(() => cachedMint?.latestMints ?? []);
   const [fetchError, setFetchError] = useState(null);
   const [selectedApe, setSelectedApe] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState(null);
 
-  const [zoom, setZoom] = useState(16);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [showBayc, setShowBayc] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const [visibleRange, setVisibleRange] = useState(initialLayout.visibleRange);
 
   const gridRef = useRef(null);
+  const mintedStatusRef = useRef(mintedStatus);
+  const rangeRef = useRef(initialLayout.visibleRange);
   const mintedCount = mintedStatus.size;
+
+  mintedStatusRef.current = mintedStatus;
 
   const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
     const padding = isMobile ? 10 : 40;
@@ -63,63 +63,38 @@ function NFTGrid() {
     return { gridWidth: actualGridWidth, cellsPerRow, totalRows };
   }, [zoom, screenWidth, isMobile]);
 
-  const visibleRange = useMemo(() => {
-    const rowHeight = zoom;
-    const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN_ROWS);
-    const endRow = Math.min(
-      totalRows,
-      Math.ceil((scrollTop + viewportHeight) / rowHeight) + OVERSCAN_ROWS
-    );
-    return { startRow, endRow };
-  }, [scrollTop, viewportHeight, zoom, totalRows]);
-
-  const visibleTokenIds = useMemo(() => {
-    const ids = [];
-    const { startRow, endRow } = visibleRange;
-    for (let row = startRow; row < endRow; row++) {
-      for (let col = 0; col < cellsPerRow; col++) {
-        const id = row * cellsPerRow + col;
-        if (id >= TOTAL_TOKENS) break;
-        ids.push(id);
-      }
-    }
-    return ids;
-  }, [visibleRange, cellsPerRow]);
+  const syncVisibleRange = useCallback((scrollTop, viewportHeight) => {
+    const next = computeVisibleRange(scrollTop, viewportHeight, zoom, totalRows);
+    const prev = rangeRef.current;
+    if (prev.startRow === next.startRow && prev.endRow === next.endRow) return;
+    rangeRef.current = next;
+    setVisibleRange(next);
+  }, [zoom, totalRows]);
 
   useEffect(() => {
-    const fetchMintedStatus = async () => {
-      try {
+    let cancelled = false;
+
+    prefetchMintStatus()
+      .then((result) => {
+        if (cancelled || !result) return;
+        setLatestMints(result.latestMints);
+        setMintedStatus(result.statuses);
         setFetchError(null);
-        setProgress(30);
-        const transactions = await getAllTransactions();
-        setProgress(60);
-        const nftStatuses = processNFTStatuses(transactions);
-        setProgress(90);
-
-        const latest = Array.from(nftStatuses.entries())
-          .sort((a, b) => b[1].timestamp - a[1].timestamp)
-          .slice(0, 5)
-          .map(([tokenId, data]) => ({
-            tokenId,
-            timestamp: data.timestamp,
-            owner: data.owner,
-          }));
-        setLatestMints(latest);
-        setMintedStatus(nftStatuses);
-
-        setProgress(100);
-        setTimeout(() => {
-          setFadeOut(true);
-          setTimeout(() => setLoading(false), 500);
-        }, 500);
-      } catch (error) {
+      })
+      .catch((error) => {
+        if (cancelled) return;
         console.error('Error fetching minted status:', error);
-        setFetchError(error.message || 'Failed to load mint data');
-        setLoading(false);
-      }
-    };
+        if (!cachedMint) {
+          setFetchError(error.message || 'Failed to load mint data');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMintDataLoading(false);
+      });
 
-    fetchMintedStatus();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -129,7 +104,8 @@ function NFTGrid() {
       timeoutId = setTimeout(() => {
         setIsMobile(window.innerWidth <= 768);
         setScreenWidth(window.innerWidth);
-        setViewportHeight(window.innerHeight);
+        const el = gridRef.current;
+        if (el) syncVisibleRange(el.scrollTop, el.clientHeight);
       }, 150);
     };
 
@@ -138,7 +114,7 @@ function NFTGrid() {
       window.removeEventListener('resize', handleResize);
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [syncVisibleRange]);
 
   useEffect(() => {
     const el = gridRef.current;
@@ -146,23 +122,36 @@ function NFTGrid() {
 
     let rafId = null;
     const onScroll = () => {
-      if (rafId) cancelAnimationFrame(rafId);
+      if (rafId) return;
       rafId = requestAnimationFrame(() => {
-        setScrollTop(el.scrollTop);
-        setViewportHeight(el.clientHeight);
+        rafId = null;
+        syncVisibleRange(el.scrollTop, el.clientHeight || window.innerHeight);
       });
     };
 
-    onScroll();
+    syncVisibleRange(el.scrollTop, el.clientHeight || window.innerHeight);
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el.removeEventListener('scroll', onScroll);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [loading]);
+  }, [syncVisibleRange]);
 
-  const handleApeClick = useCallback((tokenId) => {
-    const status = mintedStatus.get(tokenId);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (el) {
+      syncVisibleRange(el.scrollTop, el.clientHeight || window.innerHeight);
+    }
+  }, [syncVisibleRange, cellsPerRow, zoom]);
+
+  const handleGridClick = useCallback((event) => {
+    const cell = event.target.closest('[data-token-id]');
+    if (!cell) return;
+
+    const tokenId = Number(cell.dataset.tokenId);
+    if (Number.isNaN(tokenId)) return;
+
+    const status = mintedStatusRef.current.get(tokenId);
     const isMinted = Boolean(status);
 
     setSelectedTokenId(tokenId);
@@ -171,13 +160,13 @@ function NFTGrid() {
       isMinted,
       owner: status?.owner ?? null,
       mintDate: status ? new Date(status.timestamp * 1000).toISOString() : null,
-      image: getAfaImageUrl(tokenId, true),
+      image: getAfaThumbnailUrl(tokenId),
+      baycImage: getBaycThumbnailUrl(tokenId),
       editorUrl: isMinted ? buildAfaEditorUrl(tokenId) : null,
       claimUrl: AFA_CLAIM_URL,
-      baycUrl: `https://etherscan.io/token/${BAYC_CONTRACT}?a=${tokenId}`,
     });
     setModalOpen(true);
-  }, [mintedStatus]);
+  }, []);
 
   const handleTokenSearch = useCallback((tokenId) => {
     const el = gridRef.current;
@@ -196,61 +185,52 @@ function NFTGrid() {
 
   const handleShowBayc = useCallback((show) => {
     setShowBayc(show);
+    if (show) loadBaycMapping();
   }, []);
 
-  const { startRow } = visibleRange;
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+    setSelectedTokenId(null);
+  }, []);
 
   return (
     <>
       <div className="nft-grid-wrapper" ref={gridRef}>
         <div
           className="nft-grid"
+          onClick={handleGridClick}
           style={{
             width: gridWidth,
             height: totalRows * zoom,
             margin: '0 auto',
           }}
         >
-          <div
-            className="nft-grid-visible"
-            style={{
-              position: 'absolute',
-              top: startRow * zoom,
-              left: 0,
-              display: 'grid',
-              gridTemplateColumns: `repeat(${cellsPerRow}, ${zoom}px)`,
-              width: gridWidth,
-            }}
-          >
-            {visibleTokenIds.map((tokenId) => {
-              const status = mintedStatus.get(tokenId);
-              return (
-                <NFTCell
-                  key={tokenId}
-                  tokenId={tokenId}
-                  zoom={zoom}
-                  isMinted={Boolean(status)}
-                  owner={status?.owner}
-                  showBayc={showBayc}
-                  isSelected={selectedTokenId === tokenId}
-                  onClick={() => handleApeClick(tokenId)}
-                />
-              );
-            })}
-          </div>
+          <VirtualGrid
+            visibleRange={visibleRange}
+            cellsPerRow={cellsPerRow}
+            zoom={zoom}
+            gridWidth={gridWidth}
+            mintedStatus={mintedStatus}
+            showBayc={showBayc}
+            selectedTokenId={selectedTokenId}
+          />
         </div>
       </div>
 
-      <ApeDetailsModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedTokenId(null);
-        }}
-        apeData={selectedApe}
-      />
+      <Suspense fallback={null}>
+        <ApeDetailsModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          apeData={selectedApe}
+        />
+      </Suspense>
 
-      <MintProgress mintedCount={mintedCount} latestMints={latestMints} fetchError={fetchError} />
+      <MintProgress
+        mintedCount={mintedCount}
+        latestMints={latestMints}
+        fetchError={fetchError}
+        mintDataLoading={mintDataLoading}
+      />
 
       <ControlPanel
         onTokenSearch={handleTokenSearch}
@@ -260,17 +240,6 @@ function NFTGrid() {
         showBayc={showBayc}
         isMobile={isMobile}
       />
-
-      {loading && (
-        <div className={`loading-overlay${fadeOut ? ' fade-out' : ''}`}>
-          <img src="/logo.png" alt="AFA" className="loading-logo" />
-          <div className="loading-title">AFA Mint Progress</div>
-          <div className="progress-bar-container">
-            <div className="progress-bar" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="progress-text">{progress}%</div>
-        </div>
-      )}
     </>
   );
 }

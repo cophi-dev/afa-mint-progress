@@ -1,8 +1,19 @@
 import React, { memo } from 'react';
-import { getBaycMetadata } from '../data/baycMetadata';
+import {
+  getAfaThumbnailUrl,
+  getAfaThumbnailFallbackUrl,
+  getBaycThumbnailUrl,
+  getBaycThumbnailFallbackUrl,
+  getAfaIpfsUrl,
+} from '../utils/imageUrls';
+import { getBaycMetadataAsync } from '../data/baycMetadata';
+import { markImageCached } from '../utils/imageCache';
 
 const getImageSrc = (tokenId, showBayc) =>
-  showBayc ? `/bayc-images/${tokenId}.png` : `/images/${tokenId}.png`;
+  showBayc ? getBaycThumbnailUrl(tokenId) : getAfaThumbnailUrl(tokenId);
+
+const getFallbackSrc = (tokenId, showBayc) =>
+  showBayc ? getBaycThumbnailFallbackUrl(tokenId) : getAfaThumbnailFallbackUrl(tokenId);
 
 const NFTCell = memo(({
   tokenId,
@@ -11,26 +22,41 @@ const NFTCell = memo(({
   owner,
   showBayc,
   isSelected,
-  onClick,
+  eager = false,
 }) => {
   const src = getImageSrc(tokenId, showBayc);
+  const fallbackSrc = getFallbackSrc(tokenId, showBayc);
 
   const handleImageError = async (e) => {
-    if (e.target.dataset.triedFallback) return;
-    e.target.dataset.triedFallback = 'true';
+    const img = e.target;
+    const stage = img.dataset.fallbackStage || 'webp';
+
+    if (stage === 'webp') {
+      img.dataset.fallbackStage = 'png';
+      img.src = fallbackSrc;
+      return;
+    }
 
     if (showBayc) {
-      const metadata = getBaycMetadata(tokenId);
+      if (img.dataset.fallbackStage === 'bayc-done') return;
+      img.dataset.fallbackStage = 'bayc-done';
+      const metadata = await getBaycMetadataAsync(tokenId);
       if (metadata?.image) {
-        e.target.src = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        const baycFallback = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        markImageCached(baycFallback);
+        img.src = baycFallback;
       }
       return;
     }
 
-    const { default: imageCids } = await import('../data/image_cids.json');
-    const cid = imageCids[tokenId];
-    if (cid) {
-      e.target.src = `https://ipfs.io/ipfs/${cid}`;
+    // Unminted AFAs: thumbnails only — never load high-res IPFS.
+    if (!isMinted || img.dataset.fallbackStage === 'ipfs') return;
+
+    img.dataset.fallbackStage = 'ipfs';
+    const ipfsUrl = await getAfaIpfsUrl(tokenId, true);
+    if (ipfsUrl) {
+      markImageCached(ipfsUrl);
+      img.src = ipfsUrl;
     }
   };
 
@@ -38,17 +64,20 @@ const NFTCell = memo(({
     <div
       id={`nft-${tokenId}`}
       className={`nft-cell ${isMinted ? 'minted' : 'unminted'}${isSelected ? ' selected' : ''}`}
-      onClick={onClick}
+      data-token-id={tokenId}
       title={isMinted ? `#${tokenId} — ${owner?.slice(0, 8)}…` : `#${tokenId}`}
       style={{ width: zoom, height: zoom }}
     >
       <img
         src={src}
-        alt={`#${tokenId}`}
-        loading="lazy"
-        decoding="async"
+        alt=""
+        decoding={eager ? 'sync' : 'async'}
+        fetchPriority={eager ? 'high' : 'auto'}
+        loading={eager ? 'eager' : 'lazy'}
         width={zoom}
         height={zoom}
+        draggable={false}
+        onLoad={() => markImageCached(src)}
         onError={handleImageError}
       />
     </div>
@@ -59,7 +88,8 @@ const NFTCell = memo(({
   prev.isMinted === next.isMinted &&
   prev.showBayc === next.showBayc &&
   prev.isSelected === next.isSelected &&
-  prev.owner === next.owner
+  prev.owner === next.owner &&
+  prev.eager === next.eager
 );
 
 NFTCell.displayName = 'NFTCell';

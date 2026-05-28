@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, Link } from '@mui/material';
+import { Modal, Box, Typography, Card, CardMedia, IconButton, Button, Chip, Skeleton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
-import { getBaycMetadata } from '../data/baycMetadata';
+import { getBaycMetadataAsync, loadBaycMapping } from '../data/baycMetadata';
+import { getAfaIpfsUrl, getAfaThumbnailFallbackUrl, preloadImage } from '../utils/imageUrls';
 
 const style = {
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '90%',
-  maxWidth: '1000px',
-  maxHeight: '90vh',
+  width: { xs: 'calc(100% - 20px)', md: '90%' },
+  maxWidth: '920px',
+  maxHeight: { xs: 'min(92dvh, 720px)', md: '90vh' },
   bgcolor: '#1E1E1E',
-  borderRadius: '16px',
+  borderRadius: { xs: '14px', md: '16px' },
   border: '1px solid rgba(255, 255, 255, 0.1)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-  overflow: 'auto',
+  overflow: 'hidden',
   p: 0,
+  outline: 'none',
 };
 
 const cardStyle = {
@@ -29,42 +31,47 @@ const cardStyle = {
   boxShadow: 'none',
   display: 'flex',
   flexDirection: { xs: 'column', md: 'row' },
-  height: '100%',
+  maxHeight: { xs: 'min(92dvh, 720px)', md: '90vh' },
+  overflow: { xs: 'auto', md: 'hidden' },
+  WebkitOverflowScrolling: 'touch',
 };
 
 const imageContainerStyle = {
-  width: '60%',
+  flexShrink: 0,
+  width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
+  maxWidth: { md: '480px' },
+  aspectRatio: '1',
   position: 'relative',
   backgroundColor: '#000',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
+  overflow: 'hidden',
 };
 
 const imageStyle = {
+  position: 'absolute',
+  inset: 0,
   width: '100%',
   height: '100%',
   objectFit: 'cover',
-  transition: 'transform 0.2s',
-  '&:hover': {
-    transform: 'scale(1.02)',
-  },
+  display: 'block',
 };
 
 const infoBoxStyle = {
   bgcolor: '#363636',
-  borderRadius: 2,
-  p: 2,
+  borderRadius: 1.5,
+  px: 1.5,
+  py: 1,
 };
 
 const contentStyle = {
-  width: { xs: '100%', md: '40%' },
+  flex: 1,
+  minWidth: 0,
   bgcolor: '#2A2A2A',
-  p: 4,
+  p: { xs: 2, md: 3 },
   display: 'flex',
   flexDirection: 'column',
-  gap: 3,
+  gap: { xs: 1.5, md: 2 },
+  overflowY: { xs: 'visible', md: 'auto' },
+  maxHeight: { xs: 'none', md: '90vh' },
 };
 
 const arrowButtonStyle = {
@@ -73,6 +80,8 @@ const arrowButtonStyle = {
   transform: 'translateY(-50%)',
   bgcolor: 'rgba(0,0,0,0.3)',
   color: 'white',
+  width: { xs: 40, md: 'auto' },
+  height: { xs: 40, md: 'auto' },
   '&:hover': {
     bgcolor: 'rgba(0,0,0,0.5)',
   },
@@ -83,6 +92,11 @@ const arrowButtonStyle = {
 
 const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [activeStep, setActiveStep] = useState(0);
+  const [baycMetadata, setBaycMetadata] = useState(null);
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [afaImageUrl, setAfaImageUrl] = useState(null);
+  const [baycImageUrl, setBaycImageUrl] = useState(null);
+  const [imageReady, setImageReady] = useState(false);
   const maxSteps = 2;
 
   useEffect(() => {
@@ -91,24 +105,72 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     }
   }, [open, apeData?.tokenId]);
 
+  useEffect(() => {
+    if (!open || !apeData) {
+      setBaycMetadata(null);
+      setAfaImageUrl(null);
+      setBaycImageUrl(null);
+      setImageReady(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const { tokenId, image, baycImage, isMinted } = apeData;
+
+    setAfaImageUrl(image);
+    setBaycImageUrl(baycImage);
+    setImageReady(false);
+    setMetadataLoading(true);
+
+    const load = async () => {
+      const [, metadata] = await Promise.all([
+        preloadImage(image),
+        getBaycMetadataAsync(tokenId),
+      ]);
+
+      if (cancelled) return;
+
+      setBaycMetadata(metadata);
+      setMetadataLoading(false);
+      setImageReady(true);
+
+      preloadImage(baycImage);
+
+      if (isMinted) {
+        const ipfsUrl = await getAfaIpfsUrl(tokenId, true);
+        if (!cancelled && ipfsUrl) {
+          preloadImage(ipfsUrl).then(() => {
+            if (!cancelled) setAfaImageUrl(ipfsUrl);
+          });
+        }
+      }
+    };
+
+    load();
+    loadBaycMapping();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, apeData]);
+
   if (!apeData) return null;
 
   const isAfaStep = activeStep === 0;
   const showAfaBlur = isAfaStep && !apeData.isMinted;
 
-  const baycMetadata = getBaycMetadata(apeData.tokenId);
-  const baycImageUrl = baycMetadata?.image?.replace('ipfs://', 'https://ipfs.io/ipfs/');
-
   const images = [
-    { 
+    {
       title: 'AFA Version',
-      url: apeData.image 
+      url: afaImageUrl,
     },
-    { 
+    {
       title: 'Original BAYC',
-      url: baycImageUrl
-    }
+      url: baycImageUrl,
+    },
   ];
+
+  const currentImage = images[activeStep];
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -118,13 +180,36 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleBaycClick = () => {
-    window.open(apeData.baycUrl, '_blank', 'noopener,noreferrer');
+  const handleImageError = async (e) => {
+    const img = e.target;
+    const stage = img.dataset.fallbackStage || 'webp';
+
+    if (activeStep === 0) {
+      if (stage === 'webp') {
+        img.dataset.fallbackStage = 'png';
+        img.src = getAfaThumbnailFallbackUrl(apeData.tokenId);
+        return;
+      }
+      if (stage === 'png' && apeData.isMinted) {
+        img.dataset.fallbackStage = 'ipfs';
+        const ipfsUrl = await getAfaIpfsUrl(apeData.tokenId, true);
+        if (ipfsUrl) img.src = ipfsUrl;
+      }
+      return;
+    }
+
+    if (img.dataset.fallbackStage === 'bayc-done') return;
+    img.dataset.fallbackStage = 'bayc-done';
+
+    const metadata = baycMetadata ?? await getBaycMetadataAsync(apeData.tokenId);
+    if (metadata?.image) {
+      img.src = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    }
   };
 
   return (
-    <Modal 
-      open={open} 
+    <Modal
+      open={open}
       onClose={onClose}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
@@ -149,139 +234,150 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
         <Card sx={cardStyle}>
           <Box sx={imageContainerStyle}>
-            <Box sx={{ 
-              position: 'relative', 
-              width: '100%',
-              height: '100%'
-            }}>
+            {!imageReady && (
+              <Skeleton
+                variant="rectangular"
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  bgcolor: 'rgba(255,255,255,0.06)',
+                }}
+              />
+            )}
+            {currentImage.url && (
               <CardMedia
                 component="img"
-                image={images[activeStep].url}
-                alt={`${images[activeStep].title} #${apeData.tokenId}`}
+                image={currentImage.url}
+                alt={`${currentImage.title} #${apeData.tokenId}`}
+                onError={handleImageError}
                 sx={{
                   ...imageStyle,
+                  opacity: imageReady ? 1 : 0,
+                  transition: 'opacity 0.2s ease',
                   ...(showAfaBlur && {
                     filter: 'blur(20px)',
                     transform: 'scale(1.08)',
-                    '&:hover': { transform: 'scale(1.08)' },
                   }),
                 }}
               />
-              {showAfaBlur && (
-                <Box
+            )}
+            {showAfaBlur && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  px: 3,
+                  textAlign: 'center',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Typography
+                  variant="h5"
                   sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1,
-                    px: 3,
-                    textAlign: 'center',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    pointerEvents: 'none',
+                    color: '#fff',
+                    fontWeight: 700,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.6)',
                   }}
                 >
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      color: '#fff',
-                      fontWeight: 700,
-                      textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-                    }}
-                  >
-                    Not yet minted
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: 'rgba(255,255,255,0.85)',
-                      textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    Mint your AFA to reveal the full artwork
-                  </Typography>
-                </Box>
-              )}
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: 'white',
-                  position: 'absolute',
-                  top: 16,
-                  left: 16,
-                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                  zIndex: 1,
-                }}
-              >
-                {images[activeStep].title}
-              </Typography>
-              <IconButton
-                onClick={handleBack}
-                disabled={activeStep === 0}
-                sx={{
-                  ...arrowButtonStyle,
-                  left: 16,
-                }}
-              >
-                <KeyboardArrowLeft />
-              </IconButton>
-              <IconButton
-                onClick={handleNext}
-                disabled={activeStep === maxSteps - 1}
-                sx={{
-                  ...arrowButtonStyle,
-                  right: 16,
-                }}
-              >
-                <KeyboardArrowRight />
-              </IconButton>
-            </Box>
+                  Not yet minted
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'rgba(255,255,255,0.85)',
+                    textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  Mint your AFA to reveal the full artwork
+                </Typography>
+              </Box>
+            )}
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'white',
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                zIndex: 1,
+              }}
+            >
+              {currentImage.title}
+            </Typography>
+            <IconButton
+              onClick={handleBack}
+              disabled={activeStep === 0}
+              sx={{
+                ...arrowButtonStyle,
+                left: 16,
+              }}
+            >
+              <KeyboardArrowLeft />
+            </IconButton>
+            <IconButton
+              onClick={handleNext}
+              disabled={activeStep === maxSteps - 1}
+              sx={{
+                ...arrowButtonStyle,
+                right: 16,
+              }}
+            >
+              <KeyboardArrowRight />
+            </IconButton>
           </Box>
 
           <Box sx={contentStyle}>
-            <Box>
-              <Typography 
-                variant="h4" 
-                sx={{ 
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Typography
+                variant="h5"
+                sx={{
                   fontWeight: 700,
-                  mb: 2,
                   color: '#fff',
                 }}
               >
                 AFA #{apeData.tokenId}
               </Typography>
-              
+
               {apeData.isMinted ? (
-                <Chip 
-                  label="Minted" 
-                  sx={{ 
+                <Chip
+                  label="Minted"
+                  size="small"
+                  sx={{
                     bgcolor: '#6ee7a0',
                     color: '#fff',
                     fontWeight: 600,
-                    fontSize: '0.875rem',
-                  }} 
+                    fontSize: '0.75rem',
+                  }}
                 />
               ) : (
-                <Chip 
-                  label="Not Minted" 
-                  sx={{ 
+                <Chip
+                  label="Not Minted"
+                  size="small"
+                  sx={{
                     bgcolor: 'rgba(255, 183, 77, 0.2)',
                     color: '#ffb74d',
                     border: '1px solid rgba(255, 183, 77, 0.4)',
                     fontWeight: 600,
-                    fontSize: '0.875rem',
-                  }} 
+                    fontSize: '0.75rem',
+                  }}
                 />
               )}
             </Box>
 
             {apeData.isMinted && apeData.mintDate && (
               <Box>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
+                <Typography
+                  variant="subtitle1"
+                  sx={{
                     color: '#999',
                     mb: 1,
                     display: 'flex',
@@ -300,7 +396,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                       month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
                     })}
                   </Typography>
                 </Box>
@@ -308,9 +404,9 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             )}
 
             <Box>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
+              <Typography
+                variant="subtitle1"
+                sx={{
                   color: '#999',
                   mb: 1,
                   display: 'flex',
@@ -324,8 +420,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Typography>
               <Box sx={infoBoxStyle}>
                 {apeData.ensName && (
-                  <Typography 
-                    sx={{ 
+                  <Typography
+                    sx={{
                       color: '#fff',
                       mb: 1,
                       fontWeight: 500,
@@ -334,8 +430,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     {apeData.ensName}
                   </Typography>
                 )}
-                <Typography 
-                  sx={{ 
+                <Typography
+                  sx={{
                     color: apeData.ensName ? '#999' : '#fff',
                     fontFamily: 'monospace',
                     fontSize: '0.875rem',
@@ -347,92 +443,88 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               </Box>
             </Box>
 
-            {/* Attributes Section */}
-            {baycMetadata?.attributes && (
+            {metadataLoading && (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.5 }}>
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} variant="rounded" height={40} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+                ))}
+              </Box>
+            )}
+
+            {!metadataLoading && baycMetadata?.attributes && (
               <Box>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    color: '#999',
-                    mb: 2,
-                    fontSize: '0.875rem',
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: '#888',
+                    mb: 0.75,
+                    display: 'block',
                     fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
                   }}
                 >
                   Attributes
                 </Typography>
-                <Box sx={{ 
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 1,
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 0.5,
+                  maxHeight: 140,
+                  overflowY: 'auto',
+                  pr: 0.5,
+                  '&::-webkit-scrollbar': { width: 4 },
+                  '&::-webkit-scrollbar-thumb': {
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                  },
                 }}>
                   {baycMetadata.attributes.map((attr, index) => (
-                    <Chip
+                    <Box
                       key={index}
-                      label={`${attr.trait_type}: ${attr.value}`}
-                      variant="outlined"
                       sx={{
-                        color: '#fff',
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                        fontSize: '0.75rem',
-                        height: 'auto',
-                        '& .MuiChip-label': {
-                          padding: '4px 8px',
-                        },
-                        '&:hover': {
-                          borderColor: 'rgba(255, 255, 255, 0.6)',
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        }
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        bgcolor: 'rgba(255, 255, 255, 0.06)',
+                        minWidth: 0,
                       }}
-                    />
+                    >
+                      <Typography
+                        noWrap
+                        sx={{ color: '#777', fontSize: '0.625rem', lineHeight: 1.2, display: 'block' }}
+                      >
+                        {attr.trait_type}
+                      </Typography>
+                      <Typography
+                        noWrap
+                        sx={{ color: '#eee', fontSize: '0.7rem', fontWeight: 500, lineHeight: 1.3 }}
+                      >
+                        {attr.value}
+                      </Typography>
+                    </Box>
                   ))}
                 </Box>
               </Box>
             )}
 
             {apeData.isMinted && apeData.editorUrl && (
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: '#999',
-                    mb: 1,
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  AFA Editor
-                </Typography>
-                <Link
-                  href={apeData.editorUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    display: 'block',
-                    color: '#8ab4ff',
-                    fontFamily: 'monospace',
-                    fontSize: '0.8rem',
-                    wordBreak: 'break-all',
-                    mb: 2,
-                    '&:hover': { color: '#adc6ff' },
-                  }}
-                >
-                  {apeData.editorUrl}
-                </Link>
+              <Box sx={{ mt: 'auto', pt: 1 }}>
                 <Button
                   variant="contained"
                   component="a"
                   href={apeData.editorUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  fullWidth
                   startIcon={<LaunchIcon />}
                   sx={{
                     bgcolor: '#3f51b5',
                     color: '#fff',
-                    py: 1.5,
+                    py: 1.25,
                     borderRadius: 2,
                     textTransform: 'none',
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     '&:hover': {
                       bgcolor: '#303f9f',
                     },
@@ -468,40 +560,22 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   href={apeData.claimUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  fullWidth
                   startIcon={<LaunchIcon />}
                   sx={{
                     bgcolor: '#6ee7a0',
                     color: '#0d0f12',
-                    py: 1.5,
+                    py: 1.25,
                     borderRadius: 2,
                     textTransform: 'none',
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     fontWeight: 700,
-                    mb: 1.5,
                     '&:hover': {
                       bgcolor: '#34d399',
                     },
                   }}
                 >
                   Mint Your AFA
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleBaycClick}
-                  sx={{
-                    color: '#8b95a5',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    py: 1,
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
-                    '&:hover': {
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
-                      bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    },
-                  }}
-                >
-                  View Original BAYC
                 </Button>
               </Box>
             )}
@@ -512,4 +586,4 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   );
 };
 
-export default ApeDetailsModal; 
+export default ApeDetailsModal;
