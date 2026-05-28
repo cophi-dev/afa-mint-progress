@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   Box,
@@ -60,15 +60,17 @@ const cardStyle = {
   WebkitOverflowScrolling: 'touch',
 };
 
+const SWIPE_THRESHOLD_PX = 48;
+
 const imageContainerStyle = {
   flexShrink: 0,
   width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
   maxWidth: { md: '480px' },
-  height: { xs: 'min(30dvh, 240px)', md: 'auto' },
-  aspectRatio: { xs: 'auto', md: '1' },
+  aspectRatio: '1',
   position: 'relative',
   backgroundColor: '#000',
   overflow: 'hidden',
+  touchAction: { xs: 'none', md: 'auto' },
 };
 
 const imageStyle = {
@@ -130,6 +132,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [afaImageUrl, setAfaImageUrl] = useState(null);
   const [baycImageUrl, setBaycImageUrl] = useState(null);
   const [imageReady, setImageReady] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const swipeLocked = useRef(null);
+  const dragOffsetRef = useRef(0);
   const maxSteps = 2;
 
   useEffect(() => {
@@ -188,37 +196,69 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     };
   }, [open, apeData]);
 
-  if (!apeData) return null;
+  const handleNext = useCallback(() => {
+    setActiveStep((prevStep) => Math.min(prevStep + 1, maxSteps - 1));
+  }, [maxSteps]);
 
-  const isAfaStep = activeStep === 0;
-  const showAfaBlur = isAfaStep && !apeData.isMinted;
+  const handleBack = useCallback(() => {
+    setActiveStep((prevStep) => Math.max(prevStep - 1, 0));
+  }, []);
 
-  const images = [
-    {
-      title: 'AFA Version',
-      url: afaImageUrl,
-    },
-    {
-      title: 'Original BAYC',
-      url: baycImageUrl,
-    },
-  ];
+  const handleTouchStart = useCallback((event) => {
+    if (!isMobile) return;
+    touchStartX.current = event.touches[0].clientX;
+    touchStartY.current = event.touches[0].clientY;
+    swipeLocked.current = null;
+    setIsDragging(true);
+    setDragOffset(0);
+    dragOffsetRef.current = 0;
+  }, [isMobile]);
 
-  const currentImage = images[activeStep];
+  const handleTouchMove = useCallback((event) => {
+    if (!isMobile || touchStartX.current === null || touchStartY.current === null) return;
 
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
-  };
+    const deltaX = event.touches[0].clientX - touchStartX.current;
+    const deltaY = event.touches[0].clientY - touchStartY.current;
 
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
+    if (swipeLocked.current === null) {
+      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
+      swipeLocked.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+    }
 
-  const handleImageError = async (e) => {
-    const img = e.target;
+    if (swipeLocked.current !== 'horizontal') return;
+
+    event.preventDefault();
+    dragOffsetRef.current = deltaX;
+    setDragOffset(deltaX);
+  }, [isMobile]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+
+    if (swipeLocked.current === 'horizontal') {
+      const offset = dragOffsetRef.current;
+      if (offset <= -SWIPE_THRESHOLD_PX && activeStep < maxSteps - 1) {
+        handleNext();
+      } else if (offset >= SWIPE_THRESHOLD_PX && activeStep > 0) {
+        handleBack();
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+    swipeLocked.current = null;
+    dragOffsetRef.current = 0;
+    setIsDragging(false);
+    setDragOffset(0);
+  }, [isMobile, activeStep, maxSteps, handleNext, handleBack]);
+
+  const handleImageError = useCallback(async (stepIndex, event) => {
+    if (!apeData) return;
+
+    const img = event.target;
     const stage = img.dataset.fallbackStage || 'webp';
 
-    if (activeStep === 0) {
+    if (stepIndex === 0) {
       if (stage === 'webp') {
         img.dataset.fallbackStage = 'png';
         img.src = getAfaThumbnailFallbackUrl(apeData.tokenId);
@@ -244,6 +284,92 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const metadata = baycMetadata ?? await getBaycMetadataAsync(apeData.tokenId);
     const baycHighRes = ipfsToHttpUrl(metadata?.image);
     if (baycHighRes) img.src = baycHighRes;
+  }, [apeData, baycMetadata]);
+
+  if (!apeData) return null;
+
+  const images = [
+    { title: 'AFA Version', url: afaImageUrl },
+    { title: 'Original BAYC', url: baycImageUrl },
+  ];
+  const currentImage = images[activeStep];
+  const isAfaStep = activeStep === 0;
+  const showAfaBlur = isAfaStep && !apeData.isMinted;
+  const slideOffset = isMobile && isDragging ? dragOffset : 0;
+  const slideTransform = `calc(-${activeStep * (100 / maxSteps)}% + ${slideOffset}px)`;
+
+  const renderSlide = (image, stepIndex) => {
+    const showBlur = stepIndex === 0 && !apeData.isMinted;
+
+    return (
+      <Box
+        key={image.title}
+        sx={{
+          flex: `0 0 ${100 / maxSteps}%`,
+          width: `${100 / maxSteps}%`,
+          height: '100%',
+          position: 'relative',
+          flexShrink: 0,
+        }}
+      >
+        {image.url && (
+          <CardMedia
+            component="img"
+            image={image.url}
+            alt={`${image.title} #${apeData.tokenId}`}
+            onError={(event) => handleImageError(stepIndex, event)}
+            sx={{
+              ...imageStyle,
+              opacity: imageReady ? 1 : 0,
+              transition: 'opacity 0.2s ease',
+              ...(showBlur && {
+                filter: 'blur(20px)',
+                transform: 'scale(1.08)',
+              }),
+            }}
+          />
+        )}
+        {showBlur && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              px: 3,
+              textAlign: 'center',
+              background: 'rgba(0, 0, 0, 0.35)',
+              pointerEvents: 'none',
+            }}
+          >
+            <Typography
+              variant={isMobile ? 'body1' : 'h5'}
+              sx={{
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: isMobile ? '1rem' : undefined,
+                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+              }}
+            >
+              Not yet minted
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: isMobile ? '0.75rem' : undefined,
+                textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              }}
+            >
+              Mint your AFA to reveal the full artwork
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
   };
 
   return (
@@ -283,7 +409,13 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
         </IconButton>
 
         <Card sx={cardStyle}>
-          <Box sx={imageContainerStyle}>
+          <Box
+            sx={imageContainerStyle}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+          >
             {!imageReady && (
               <Skeleton
                 variant="rectangular"
@@ -293,99 +425,161 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   width: '100%',
                   height: '100%',
                   bgcolor: 'rgba(255,255,255,0.06)',
+                  zIndex: 0,
                 }}
               />
             )}
-            {currentImage.url && (
-              <CardMedia
-                component="img"
-                image={currentImage.url}
-                alt={`${currentImage.title} #${apeData.tokenId}`}
-                onError={handleImageError}
-                sx={{
-                  ...imageStyle,
-                  opacity: imageReady ? 1 : 0,
-                  transition: 'opacity 0.2s ease',
-                  ...(showAfaBlur && {
-                    filter: 'blur(20px)',
-                    transform: 'scale(1.08)',
-                  }),
-                }}
-              />
-            )}
-            {showAfaBlur && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  px: 3,
-                  textAlign: 'center',
-                  background: 'rgba(0, 0, 0, 0.35)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <Typography
-                  variant={isMobile ? 'body1' : 'h5'}
+
+            {isMobile ? (
+              <>
+                <Box
                   sx={{
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: isMobile ? '1rem' : undefined,
-                    textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    width: `${maxSteps * 100}%`,
+                    height: '100%',
+                    transform: `translateX(${slideTransform})`,
+                    transition: isDragging ? 'none' : 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
                   }}
                 >
-                  Not yet minted
-                </Typography>
+                  {images.map((image, stepIndex) => renderSlide(image, stepIndex))}
+                </Box>
+
                 <Typography
-                  variant="body2"
+                  variant="h6"
                   sx={{
-                    color: 'rgba(255,255,255,0.85)',
-                    fontSize: isMobile ? '0.75rem' : undefined,
-                    textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                    color: 'white',
+                    position: 'absolute',
+                    top: 12,
+                    left: 12,
+                    fontSize: '0.875rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    zIndex: 1,
+                    pointerEvents: 'none',
                   }}
                 >
-                  Mint your AFA to reveal the full artwork
+                  {currentImage.title}
                 </Typography>
-              </Box>
+
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 0.75,
+                    zIndex: 1,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {images.map((image, stepIndex) => (
+                    <Box
+                      key={image.title}
+                      sx={{
+                        width: stepIndex === activeStep ? 16 : 6,
+                        height: 6,
+                        borderRadius: 999,
+                        bgcolor: stepIndex === activeStep ? '#6ee7a0' : 'rgba(255,255,255,0.35)',
+                        transition: 'width 0.2s ease, background-color 0.2s ease',
+                      }}
+                    />
+                  ))}
+                </Box>
+              </>
+            ) : (
+              <>
+                {currentImage.url && (
+                  <CardMedia
+                    component="img"
+                    image={currentImage.url}
+                    alt={`${currentImage.title} #${apeData.tokenId}`}
+                    onError={(event) => handleImageError(activeStep, event)}
+                    sx={{
+                      ...imageStyle,
+                      opacity: imageReady ? 1 : 0,
+                      transition: 'opacity 0.2s ease',
+                      ...(showAfaBlur && {
+                        filter: 'blur(20px)',
+                        transform: 'scale(1.08)',
+                      }),
+                    }}
+                  />
+                )}
+                {showAfaBlur && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      px: 3,
+                      textAlign: 'center',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        color: '#fff',
+                        fontWeight: 700,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                      }}
+                    >
+                      Not yet minted
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: 'rgba(255,255,255,0.85)',
+                        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      Mint your AFA to reveal the full artwork
+                    </Typography>
+                  </Box>
+                )}
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: 'white',
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
+                    fontSize: '1.25rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    zIndex: 1,
+                  }}
+                >
+                  {currentImage.title}
+                </Typography>
+                <IconButton
+                  onClick={handleBack}
+                  disabled={activeStep === 0}
+                  sx={{
+                    ...arrowButtonStyle,
+                    left: 16,
+                  }}
+                >
+                  <KeyboardArrowLeft />
+                </IconButton>
+                <IconButton
+                  onClick={handleNext}
+                  disabled={activeStep === maxSteps - 1}
+                  sx={{
+                    ...arrowButtonStyle,
+                    right: 16,
+                  }}
+                >
+                  <KeyboardArrowRight />
+                </IconButton>
+              </>
             )}
-            <Typography
-              variant="h6"
-              sx={{
-                color: 'white',
-                position: 'absolute',
-                top: { xs: 12, md: 16 },
-                left: { xs: 12, md: 16 },
-                fontSize: { xs: '0.875rem', md: '1.25rem' },
-                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                zIndex: 1,
-              }}
-            >
-              {currentImage.title}
-            </Typography>
-            <IconButton
-              onClick={handleBack}
-              disabled={activeStep === 0}
-              sx={{
-                ...arrowButtonStyle,
-                left: { xs: 8, md: 16 },
-              }}
-            >
-              <KeyboardArrowLeft />
-            </IconButton>
-            <IconButton
-              onClick={handleNext}
-              disabled={activeStep === maxSteps - 1}
-              sx={{
-                ...arrowButtonStyle,
-                right: { xs: 8, md: 16 },
-              }}
-            >
-              <KeyboardArrowRight />
-            </IconButton>
           </Box>
 
           <Box sx={contentStyle}>
