@@ -7,7 +7,7 @@ import { setAfaIpfsImageSrc, tryNextAfaIpfsGateway } from '../utils/imageUrls';
 
 const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false, onMintClick }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -252,7 +252,11 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
     </Box>
   );
 
-  return isMobile ? content : <Draggable>{content}</Draggable>;
+  return isMobile ? content : (
+    <Draggable handle=".drag-handle" cancel=".latest-mints-list, .mint-entry">
+      {content}
+    </Draggable>
+  );
 };
 
 export default MintProgress;
