@@ -162,13 +162,7 @@ function NFTGrid() {
     };
   }, [modalOpen, isMobile]);
 
-  const handleGridClick = useCallback((event) => {
-    const cell = event.target.closest('[data-token-id]');
-    if (!cell) return;
-
-    const tokenId = Number(cell.dataset.tokenId);
-    if (Number.isNaN(tokenId)) return;
-
+  const openApeModal = useCallback((tokenId) => {
     const status = mintedStatusRef.current.get(tokenId);
     const isMinted = Boolean(status);
 
@@ -185,6 +179,16 @@ function NFTGrid() {
     });
     setModalOpen(true);
   }, []);
+
+  const handleGridClick = useCallback((event) => {
+    const cell = event.target.closest('[data-token-id]');
+    if (!cell) return;
+
+    const tokenId = Number(cell.dataset.tokenId);
+    if (Number.isNaN(tokenId)) return;
+
+    openApeModal(tokenId);
+  }, [openApeModal]);
 
   const handleTokenSearch = useCallback((tokenId) => {
     const el = gridRef.current;
@@ -249,6 +253,7 @@ function NFTGrid() {
         fetchError={fetchError}
         mintDataLoading={mintDataLoading}
         hidden={modalOpen && isMobile}
+        onMintClick={openApeModal}
       />
 
       <ControlPanel

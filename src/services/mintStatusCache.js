@@ -7,7 +7,6 @@ let fetchPromise = null;
 const buildLatestMints = (statuses) =>
   Array.from(statuses.entries())
     .sort((a, b) => b[1].timestamp - a[1].timestamp)
-    .slice(0, 5)
     .map(([tokenId, data]) => ({
       tokenId,
       timestamp: data.timestamp,
@@ -28,7 +27,7 @@ export const loadMintCache = () => {
 
     return {
       statuses,
-      latestMints: parsed.latestMints ?? buildLatestMints(statuses),
+      latestMints: buildLatestMints(statuses),
       savedAt: parsed.savedAt ?? 0,
     };
   } catch {

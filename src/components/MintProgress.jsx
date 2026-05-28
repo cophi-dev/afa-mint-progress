@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Link, IconButton, Collapse } from '@mui/material';
+import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, ExpandLess, TrendingUp } from '@mui/icons-material';
 import Draggable from 'react-draggable';
 import './MintProgress.css';
 import { getAfaIpfsUrl } from '../utils/imageUrls';
 
-const CONTRACT_ADDRESS = '0xfAa0e99EF34Eae8b288CFEeAEa4BF4f5B5f2eaE7';
-
-const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false }) => {
+const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false, onMintClick }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768);
 
@@ -32,8 +30,6 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
       second: '2-digit'
     }).replace(/\//g, '/');
   };
-
-  const recentMints = latestMints.slice(0, 3);
 
   const content = (
     <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}${hidden ? ' hidden-for-modal' : ''}`}>
@@ -157,23 +153,14 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
             Latest Mints
           </Typography>
           
-          {recentMints.map((mint) => (
-            <Link
-              key={mint.tokenId}
-              href={`https://etherscan.io/token/${CONTRACT_ADDRESS}?a=${mint.tokenId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ 
-                textDecoration: 'none',
-                display: 'block',
-                mb: isMobile ? 2 : 1.5,
-                '&:last-child': {
-                  mb: 0
-                }
-              }}
-            >
+          <Box className="latest-mints-list">
+          {latestMints.map((mint) => (
               <Box
+                key={mint.tokenId}
                 className="mint-entry"
+                component="button"
+                type="button"
+                onClick={() => onMintClick?.(mint.tokenId)}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -182,8 +169,18 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
                   borderRadius: isMobile ? 1.5 : 1,
                   transition: 'background 0.2s ease',
                   minHeight: isMobile ? 56 : 'auto',
+                  width: '100%',
+                  mb: isMobile ? 2 : 1.5,
                   bgcolor: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  font: 'inherit',
+                  color: 'inherit',
+                  WebkitTapHighlightColor: 'transparent',
+                  '&:last-child': {
+                    mb: 0,
+                  },
                   '&:hover': {
                     bgcolor: 'rgba(255, 255, 255, 0.08)',
                     transform: isMobile ? 'none' : 'translateY(-1px)',
@@ -245,8 +242,8 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
                   </Typography>
                 </Box>
               </Box>
-            </Link>
           ))}
+          </Box>
         </Box>
       </Collapse>
     </Box>
