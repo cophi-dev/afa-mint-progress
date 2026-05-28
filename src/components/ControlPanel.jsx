@@ -115,11 +115,6 @@ const ControlPanel = ({
     0
   );
 
-  const activeTraitCount = Object.values(traitFilters).reduce(
-    (sum, values) => sum + (values?.length ?? 0),
-    0
-  );
-
   useEffect(() => {
     if (isMobile) {
       setIsExpanded(false);
