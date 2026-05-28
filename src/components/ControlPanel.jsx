@@ -8,13 +8,12 @@ import {
   Paper,
   Typography,
   IconButton,
-  Collapse,
   Tooltip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CloseIcon from '@mui/icons-material/Close';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
 import TraitFilter from './TraitFilter';
@@ -116,11 +115,7 @@ const ControlPanel = ({
   );
 
   useEffect(() => {
-    if (isMobile) {
-      setIsExpanded(false);
-    } else {
-      setIsExpanded(false);
-    }
+    setIsExpanded(false);
   }, [isMobile]);
 
   useEffect(() => {
@@ -129,10 +124,12 @@ const ControlPanel = ({
     const root = document.documentElement;
     if (hidden) {
       root.style.setProperty('--mobile-controls-offset', '0px');
+    } else if (isExpanded) {
+      root.style.setProperty('--mobile-controls-offset', 'min(52dvh, 380px)');
     } else {
       root.style.setProperty(
         '--mobile-controls-offset',
-        isExpanded ? 'min(52dvh, 380px)' : 'calc(44px + env(safe-area-inset-bottom, 0px))'
+        'calc(72px + env(safe-area-inset-bottom, 0px))'
       );
     }
 
@@ -141,18 +138,28 @@ const ControlPanel = ({
     };
   }, [isMobile, isExpanded, hidden]);
 
+  useEffect(() => {
+    if (!isMobile || !isExpanded) return undefined;
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setIsExpanded(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isMobile, isExpanded]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const tokenId = parseInt(searchValue, 10);
     if (!Number.isNaN(tokenId) && tokenId >= 0 && tokenId < 10000) {
       onTokenSearch(tokenId);
-      if (isMobile) setIsExpanded(false);
+      if (isMobile) closeMobilePanel();
     }
   };
 
-  const toggleMobileExpanded = () => {
-    setIsExpanded((prev) => !prev);
-  };
+  const openMobilePanel = () => setIsExpanded(true);
+  const closeMobilePanel = () => setIsExpanded(false);
 
   const textFieldSx = {
     color: '#fff',
@@ -293,6 +300,55 @@ const ControlPanel = ({
     </>
   );
 
+  const mobileFabBadges =
+    isMobile && !isExpanded ? (
+      <Box className="control-panel-fab-badges" aria-hidden>
+        {activeTraitCount > 0 && (
+          <Box className="control-panel-fab-dot accent" title={`${activeTraitCount} trait filters`} />
+        )}
+        {showBayc && <Box className="control-panel-fab-dot" title="BAYC overlay on" />}
+      </Box>
+    ) : null;
+
+  if (isMobile && !isExpanded && !hidden) {
+    return (
+      <Tooltip title="Open controls" placement="left">
+        <IconButton
+          className="control-panel-fab"
+          onClick={openMobilePanel}
+          aria-label="Open controls"
+          aria-haspopup="dialog"
+          sx={{
+            position: 'fixed',
+            right: 16,
+            bottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
+            zIndex: 1600,
+            width: 52,
+            height: 52,
+            bgcolor: 'rgba(16, 18, 22, 0.92)',
+            backdropFilter: 'blur(14px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '14px',
+            color: 'rgba(255,255,255,0.85)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': {
+              bgcolor: 'rgba(24, 26, 30, 0.96)',
+              color: '#fff',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.42)',
+            },
+            '&:active': {
+              transform: 'scale(0.96)',
+            },
+          }}
+        >
+          <TuneIcon sx={{ fontSize: 22 }} />
+          {mobileFabBadges}
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
   if (!isMobile && isMinimized) {
     return (
       <Tooltip title="Controls" placement="left">
@@ -328,9 +384,32 @@ const ControlPanel = ({
     );
   }
 
+  if (isMobile && hidden) {
+    return null;
+  }
+
   return (
-    <Paper
-      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile && isExpanded ? ' expanded' : ''}${isMobile && !isExpanded ? ' collapsed' : ''}${hidden ? ' hidden-for-modal' : ''}`}
+    <>
+      {isMobile && isExpanded && (
+        <Box
+          className="control-panel-backdrop"
+          onClick={closeMobilePanel}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              closeMobilePanel();
+            }
+          }}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close controls"
+        />
+      )}
+      <Paper
+      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile ? ' expanded' : ''}${hidden ? ' hidden-for-modal' : ''}`}
+      role={isMobile ? 'dialog' : undefined}
+      aria-modal={isMobile ? true : undefined}
+      aria-label={isMobile ? 'Controls' : undefined}
       elevation={0}
       sx={{
         position: 'fixed',
@@ -340,7 +419,7 @@ const ControlPanel = ({
         left: isMobile ? 0 : 'auto',
         width: isMobile ? '100%' : 268,
         maxHeight: isMobile ? 'min(52dvh, 380px)' : 'calc(100vh - 28px)',
-        overflow: isMobile && !isExpanded ? 'hidden' : 'auto',
+        overflow: 'auto',
         bgcolor: 'rgba(16, 18, 22, 0.92)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
@@ -363,40 +442,16 @@ const ControlPanel = ({
           pb: isMobile ? 0.75 : 1.5,
         }}
       >
-        {isMobile && (
-          <Box
-            className="control-panel-drag-handle"
-            onClick={toggleMobileExpanded}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleMobileExpanded();
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Collapse controls' : 'Expand controls'}
-          />
-        )}
+        {isMobile && <Box className="control-panel-drag-handle" aria-hidden />}
 
         <Box
-          component={isMobile ? 'button' : 'div'}
-          type={isMobile ? 'button' : undefined}
-          onClick={isMobile ? toggleMobileExpanded : undefined}
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
-            mb: isMobile && !isExpanded ? 0 : 1.25,
-            minHeight: isMobile ? 36 : 28,
-            border: 'none',
-            background: 'transparent',
-            padding: 0,
-            cursor: isMobile ? 'pointer' : 'default',
-            textAlign: 'left',
-            WebkitTapHighlightColor: 'transparent',
+            mb: 1.25,
+            minHeight: isMobile ? 40 : 28,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
@@ -410,7 +465,7 @@ const ControlPanel = ({
             >
               Controls
             </Typography>
-            {isMobile && !isExpanded && (
+            {isMobile && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5 }}>
                 <Box className="control-panel-badge">{zoom}px</Box>
                 {showBayc && <Box className="control-panel-badge accent">BAYC</Box>}
@@ -439,31 +494,27 @@ const ControlPanel = ({
               <ExpandLessIcon sx={{ fontSize: 18 }} />
             </IconButton>
           ) : (
-            <Box
+            <IconButton
+              onClick={closeMobilePanel}
+              aria-label="Close controls"
+              size="small"
               sx={{
-                color: 'rgba(255,255,255,0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 32,
-                height: 32,
+                color: 'rgba(255,255,255,0.55)',
+                width: 40,
+                height: 40,
                 flexShrink: 0,
+                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' },
               }}
             >
-              {isExpanded ? (
-                <ExpandLessIcon sx={{ fontSize: 20 }} />
-              ) : (
-                <ExpandMoreIcon sx={{ fontSize: 20 }} />
-              )}
-            </Box>
+              <CloseIcon sx={{ fontSize: 22 }} />
+            </IconButton>
           )}
         </Box>
 
-        <Collapse in={isMobile ? isExpanded : true} timeout={280}>
-          <Box sx={{ pb: isMobile ? 0.5 : 0 }}>{panelContent}</Box>
-        </Collapse>
+        <Box sx={{ pb: isMobile ? 0.5 : 0 }}>{panelContent}</Box>
       </Box>
     </Paper>
+    </>
   );
 };
 

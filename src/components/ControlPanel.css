@@ -10,26 +10,53 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-.control-panel.mobile.collapsed {
-  max-height: calc(44px + env(safe-area-inset-bottom, 0px)) !important;
-}
-
 .control-panel.mobile.expanded {
   max-height: min(52dvh, 380px) !important;
 }
 
-.control-panel-drag-handle {
-  width: 32px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.22);
-  border-radius: 999px;
-  margin: 0 auto 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.control-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1590;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.22s ease;
+  touch-action: none;
 }
 
-.control-panel-drag-handle:active {
-  background: rgba(255, 255, 255, 0.45);
+.control-panel-fab {
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.control-panel-fab-badges {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.control-panel-fab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px solid rgba(16, 18, 22, 0.9);
+}
+
+.control-panel-fab-dot.accent {
+  background: #6ee7a0;
+}
+
+.control-panel-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  margin: 4px auto 10px;
+  flex-shrink: 0;
 }
 
 .control-panel-badge {
@@ -69,6 +96,15 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 768px) {
   .control-panel.mobile {
     border-radius: 16px 16px 0 0 !important;
@@ -76,21 +112,11 @@
     right: 0 !important;
     width: 100% !important;
     bottom: 0 !important;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45) !important;
     border: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-user-select: none;
-    user-select: none;
     touch-action: manipulation;
-    transition: opacity 0.22s ease, visibility 0.22s ease, transform 0.22s ease;
-  }
-
-  .control-panel.mobile.hidden-for-modal {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    transform: translateY(100%) !important;
   }
 
   .control-panel.mobile .control-panel-inner {
@@ -107,7 +133,7 @@
   }
 
   .control-panel .MuiIconButton-root:focus-visible,
-  .control-panel-drag-handle:focus-visible {
+  .control-panel-fab:focus-visible {
     outline: 2px solid #6ee7a0;
     outline-offset: 2px;
   }
