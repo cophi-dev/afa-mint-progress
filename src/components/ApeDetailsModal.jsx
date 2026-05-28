@@ -19,7 +19,6 @@ import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import { getBaycMetadataAsync, loadBaycMapping } from '../data/baycMetadata';
 import {
-  getAfaIpfsUrl,
   getAfaThumbnailFallbackUrl,
   getBaycThumbnailFallbackUrl,
   ipfsToHttpUrl,
