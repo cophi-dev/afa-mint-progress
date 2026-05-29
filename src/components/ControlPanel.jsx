@@ -119,26 +119,6 @@ const ControlPanel = ({
   }, [isMobile]);
 
   useEffect(() => {
-    if (!isMobile) return undefined;
-
-    const root = document.documentElement;
-    if (hidden) {
-      root.style.setProperty('--mobile-controls-offset', '0px');
-    } else if (isExpanded) {
-      root.style.setProperty('--mobile-controls-offset', 'min(52dvh, 380px)');
-    } else {
-      root.style.setProperty(
-        '--mobile-controls-offset',
-        'calc(72px + env(safe-area-inset-bottom, 0px))'
-      );
-    }
-
-    return () => {
-      root.style.removeProperty('--mobile-controls-offset');
-    };
-  }, [isMobile, isExpanded, hidden]);
-
-  useEffect(() => {
     if (!isMobile || !isExpanded) return undefined;
 
     const onKeyDown = (e) => {

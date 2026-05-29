@@ -1,5 +1,5 @@
 export const TOTAL_TOKENS = 10000;
-export const MOBILE_DEFAULT_ZOOM = 16;
+export const MOBILE_DEFAULT_ZOOM = 32;
 export const DESKTOP_DEFAULT_ZOOM = 64;
 /** @deprecated use getDefaultZoom() */
 export const DEFAULT_ZOOM = MOBILE_DEFAULT_ZOOM;

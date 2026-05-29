@@ -168,20 +168,6 @@ function NFTGrid() {
     }
   }, [syncVisibleRange, cellsPerRow, zoom]);
 
-  useEffect(() => {
-    if (!isMobile) return undefined;
-
-    if (modalOpen) {
-      document.body.classList.add('modal-open-mobile');
-    } else {
-      document.body.classList.remove('modal-open-mobile');
-    }
-
-    return () => {
-      document.body.classList.remove('modal-open-mobile');
-    };
-  }, [modalOpen, isMobile]);
-
   const openApeModal = useCallback((tokenId) => {
     const status = mintedStatusRef.current.get(tokenId);
     const isMinted = Boolean(status);

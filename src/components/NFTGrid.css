@@ -212,14 +212,7 @@ html, body, #root {
 @media (max-width: 768px) {
   .nft-grid-wrapper {
     padding: 8px;
-    top: 0;
-    bottom: var(--mobile-controls-offset, calc(72px + env(safe-area-inset-bottom, 0px)));
     touch-action: pan-y;
-  }
-
-  body.modal-open-mobile .nft-grid-wrapper {
-    top: 0;
-    bottom: 0;
   }
 }
 
