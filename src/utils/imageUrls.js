@@ -69,13 +69,26 @@ export const getAfaIpfsUrl = async (tokenId, isMinted) => {
 export const resolveIpfsUrl = async (cid) => {
   if (!cid) return null;
 
-  for (const url of getIpfsGatewayUrls(cid)) {
-    // eslint-disable-next-line no-await-in-loop
-    const ok = await preloadImageCached(url);
-    if (ok) return url;
-  }
+  const urls = getIpfsGatewayUrls(cid);
+  if (urls.length === 0) return null;
 
-  return null;
+  return new Promise((resolve) => {
+    let settled = false;
+    let pending = urls.length;
+
+    urls.forEach((url) => {
+      preloadImageCached(url).then((ok) => {
+        if (settled) return;
+        if (ok) {
+          settled = true;
+          resolve(url);
+          return;
+        }
+        pending -= 1;
+        if (pending === 0) resolve(null);
+      });
+    });
+  });
 };
 
 /** Resolve a working high-res URL for a minted AFA. */

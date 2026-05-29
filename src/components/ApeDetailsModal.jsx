@@ -19,15 +19,14 @@ import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import { getBaycMetadata, getBaycMetadataAsync } from '../data/baycMetadata';
 import {
-  buildIpfsUrl,
-  getAfaIpfsCid,
   getAfaThumbnailFallbackUrl,
   getBaycThumbnailFallbackUrl,
   ipfsToHttpUrl,
+  resolveAfaIpfsUrl,
+  resolveIpfsUrl,
   setAfaIpfsImageSrc,
   tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
-import { preloadImageCached } from '../utils/imageCache';
 
 const style = {
   position: 'absolute',
@@ -64,6 +63,61 @@ const cardStyle = {
 };
 
 const SWIPE_THRESHOLD_PX = 48;
+
+const HIRES_LOADING_MESSAGES = [
+  { title: 'Polishing pixels…', subtitle: 'Full resolution dropping soon' },
+  { title: 'Summoning the hi-res ape…', subtitle: 'IPFS monkeys are en route' },
+  { title: 'Cranking up the detail…', subtitle: 'Almost sharp enough to count the fur' },
+  { title: 'Un-blurring the masterpiece…', subtitle: 'Your mint deserves the big picture' },
+  { title: 'Fetching from the jungle…', subtitle: 'High-res is swinging in any second' },
+  { title: 'Loading the good stuff…', subtitle: 'Patience — beauty takes bandwidth' },
+  { title: 'Waking up the pixels…', subtitle: 'Hi-res reveal incoming' },
+  { title: 'Consulting the banana oracle…', subtitle: 'Crystal-clear version on the way' },
+];
+
+const pickHiresLoadingMessage = () =>
+  HIRES_LOADING_MESSAGES[Math.floor(Math.random() * HIRES_LOADING_MESSAGES.length)];
+
+const ImageStatusOverlay = ({ title, subtitle, isMobile }) => (
+  <Box
+    sx={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1,
+      px: 3,
+      textAlign: 'center',
+      background: 'rgba(0, 0, 0, 0.35)',
+      pointerEvents: 'none',
+      zIndex: 1,
+    }}
+  >
+    <Typography
+      variant={isMobile ? 'body1' : 'h5'}
+      sx={{
+        color: '#fff',
+        fontWeight: 700,
+        fontSize: isMobile ? '1rem' : undefined,
+        textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+      }}
+    >
+      {title}
+    </Typography>
+    <Typography
+      variant="body2"
+      sx={{
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: isMobile ? '0.75rem' : undefined,
+        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+      }}
+    >
+      {subtitle}
+    </Typography>
+  </Box>
+);
 
 const imageContainerStyle = {
   flexShrink: 0,
@@ -135,6 +189,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [afaImageUrl, setAfaImageUrl] = useState(null);
   const [baycImageUrl, setBaycImageUrl] = useState(null);
   const [imageReady, setImageReady] = useState(false);
+  const [afaHighResLoading, setAfaHighResLoading] = useState(false);
+  const [hiresLoadingMessage, setHiresLoadingMessage] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef(null);
@@ -156,6 +212,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       setBaycImageUrl(null);
       setImageReady(false);
       setMetadataLoading(false);
+      setAfaHighResLoading(false);
+      setHiresLoadingMessage(null);
       return undefined;
     }
 
@@ -167,8 +225,10 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setImageReady(true);
     setBaycMetadata(null);
     setMetadataLoading(true);
+    setAfaHighResLoading(isMinted);
+    setHiresLoadingMessage(isMinted ? pickHiresLoadingMessage() : null);
 
-    const load = async () => {
+    const loadMetadata = async () => {
       const cachedMetadata = getBaycMetadata(tokenId);
       const metadata = cachedMetadata ?? await getBaycMetadataAsync(tokenId);
 
@@ -176,30 +236,24 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
       setBaycMetadata(metadata);
       setMetadataLoading(false);
-      setImageReady(true);
-
-      const upgradeImage = async (url, setter) => {
-        if (!url || cancelled) return;
-        const ok = await preloadImageCached(url);
-        if (!cancelled && ok) setter(url);
-      };
-
-      if (isMinted) {
-        const afaCid = await getAfaIpfsCid(tokenId, true);
-        const afaHighRes = buildIpfsUrl(afaCid);
-        if (afaHighRes) {
-          upgradeImage(afaHighRes, setAfaImageUrl);
-        }
-      }
 
       const baycCid = metadata?.image?.startsWith('ipfs://') ? metadata.image.slice(7) : null;
-      const baycHighRes = buildIpfsUrl(baycCid);
-      if (baycHighRes) {
-        upgradeImage(baycHighRes, setBaycImageUrl);
-      }
+      if (!baycCid) return;
+
+      const baycHighRes = await resolveIpfsUrl(baycCid);
+      if (!cancelled && baycHighRes) setBaycImageUrl(baycHighRes);
     };
 
-    load();
+    const loadAfaHighRes = async () => {
+      const afaHighRes = await resolveAfaIpfsUrl(tokenId, true);
+      if (cancelled) return;
+
+      if (afaHighRes) setAfaImageUrl(afaHighRes);
+      setAfaHighResLoading(false);
+    };
+
+    loadMetadata();
+    if (isMinted) loadAfaHighRes();
 
     return () => {
       cancelled = true;
@@ -307,12 +361,16 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   ];
   const currentImage = images[activeStep];
   const isAfaStep = activeStep === 0;
-  const showAfaBlur = isAfaStep && !apeData.isMinted;
+  const showUnmintedBlur = isAfaStep && !apeData.isMinted;
+  const showHiresLoadingBlur = isAfaStep && apeData.isMinted && afaHighResLoading;
+  const showAfaBlur = showUnmintedBlur || showHiresLoadingBlur;
   const slideOffset = isMobile && isDragging ? dragOffset : 0;
   const slideTransform = `calc(-${activeStep * (100 / maxSteps)}% + ${slideOffset}px)`;
 
   const renderSlide = (image, stepIndex) => {
-    const showBlur = stepIndex === 0 && !apeData.isMinted;
+    const showUnminted = stepIndex === 0 && !apeData.isMinted;
+    const showHiresLoading = stepIndex === 0 && apeData.isMinted && afaHighResLoading;
+    const showBlur = showUnminted || showHiresLoading;
 
     return (
       <Box
@@ -334,7 +392,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             sx={{
               ...imageStyle,
               opacity: imageReady ? 1 : 0,
-              transition: 'opacity 0.2s ease',
+              transition: 'filter 0.45s ease, transform 0.45s ease, opacity 0.2s ease',
               ...(showBlur && {
                 filter: 'blur(20px)',
                 transform: 'scale(1.08)',
@@ -343,43 +401,15 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
           />
         )}
         {showBlur && (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1,
-              px: 3,
-              textAlign: 'center',
-              background: 'rgba(0, 0, 0, 0.35)',
-              pointerEvents: 'none',
-            }}
-          >
-            <Typography
-              variant={isMobile ? 'body1' : 'h5'}
-              sx={{
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: isMobile ? '1rem' : undefined,
-                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-              }}
-            >
-              Not yet minted
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'rgba(255,255,255,0.85)',
-                fontSize: isMobile ? '0.75rem' : undefined,
-                textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-              }}
-            >
-              Mint your AFA to reveal the full artwork
-            </Typography>
-          </Box>
+          <ImageStatusOverlay
+            isMobile={isMobile}
+            title={showHiresLoading ? hiresLoadingMessage?.title : 'Not yet minted'}
+            subtitle={
+              showHiresLoading
+                ? hiresLoadingMessage?.subtitle
+                : 'Mint your AFA to reveal the full artwork'
+            }
+          />
         )}
       </Box>
     );
@@ -512,7 +542,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                     sx={{
                       ...imageStyle,
                       opacity: imageReady ? 1 : 0,
-                      transition: 'opacity 0.2s ease',
+                      transition: 'filter 0.45s ease, transform 0.45s ease, opacity 0.2s ease',
                       ...(showAfaBlur && {
                         filter: 'blur(20px)',
                         transform: 'scale(1.08)',
@@ -521,41 +551,15 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   />
                 )}
                 {showAfaBlur && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1,
-                      px: 3,
-                      textAlign: 'center',
-                      background: 'rgba(0, 0, 0, 0.35)',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        color: '#fff',
-                        fontWeight: 700,
-                        textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-                      }}
-                    >
-                      Not yet minted
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: 'rgba(255,255,255,0.85)',
-                        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                      }}
-                    >
-                      Mint your AFA to reveal the full artwork
-                    </Typography>
-                  </Box>
+                  <ImageStatusOverlay
+                    isMobile={isMobile}
+                    title={showHiresLoadingBlur ? hiresLoadingMessage?.title : 'Not yet minted'}
+                    subtitle={
+                      showHiresLoadingBlur
+                        ? hiresLoadingMessage?.subtitle
+                        : 'Mint your AFA to reveal the full artwork'
+                    }
+                  />
                 )}
                 <Typography
                   variant="h6"
