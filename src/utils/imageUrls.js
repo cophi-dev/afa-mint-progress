@@ -19,6 +19,8 @@ const loadImageCids = async () => {
   return imageCidsPromise;
 };
 
+export const prefetchImageCids = () => loadImageCids();
+
 export const getIpfsGatewayUrls = (cid) => {
   if (!cid) return [];
   return uniqueGateways.map((gateway) => `${gateway}/${cid}`);

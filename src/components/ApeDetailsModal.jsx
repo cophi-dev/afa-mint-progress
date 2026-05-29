@@ -17,14 +17,13 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
-import { getBaycMetadataAsync, loadBaycMapping } from '../data/baycMetadata';
+import { getBaycMetadata, getBaycMetadataAsync } from '../data/baycMetadata';
 import {
+  buildIpfsUrl,
+  getAfaIpfsCid,
   getAfaThumbnailFallbackUrl,
   getBaycThumbnailFallbackUrl,
   ipfsToHttpUrl,
-  preloadImage,
-  resolveAfaIpfsUrl,
-  resolveIpfsUrl,
   setAfaIpfsImageSrc,
   tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
@@ -156,6 +155,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
       setAfaImageUrl(null);
       setBaycImageUrl(null);
       setImageReady(false);
+      setMetadataLoading(false);
       return undefined;
     }
 
@@ -164,45 +164,42 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
     setAfaImageUrl(image);
     setBaycImageUrl(baycImage);
-    setImageReady(false);
+    setImageReady(true);
+    setBaycMetadata(null);
     setMetadataLoading(true);
 
     const load = async () => {
-      const metadataPromise = getBaycMetadataAsync(tokenId);
-      const afaHighResPromise = isMinted ? resolveAfaIpfsUrl(tokenId, true) : Promise.resolve(null);
-      const [metadata, afaHighRes] = await Promise.all([metadataPromise, afaHighResPromise]);
+      const cachedMetadata = getBaycMetadata(tokenId);
+      const metadata = cachedMetadata ?? await getBaycMetadataAsync(tokenId);
 
       if (cancelled) return;
 
       setBaycMetadata(metadata);
-
-      const baycCid = metadata?.image?.startsWith('ipfs://') ? metadata.image.slice(7) : null;
-      const baycHighRes = baycCid ? await resolveIpfsUrl(baycCid) : null;
-      const afaUrl = afaHighRes || getAfaThumbnailFallbackUrl(tokenId) || image;
-      const baycUrl = baycHighRes || baycImage;
-
-      if (afaHighRes) {
-        await preloadImageCached(afaUrl);
-      } else {
-        await preloadImage(afaUrl);
-      }
-
-      if (cancelled) return;
-
-      setAfaImageUrl(afaUrl);
-      setBaycImageUrl(baycUrl);
       setMetadataLoading(false);
       setImageReady(true);
 
+      const upgradeImage = async (url, setter) => {
+        if (!url || cancelled) return;
+        const ok = await preloadImageCached(url);
+        if (!cancelled && ok) setter(url);
+      };
+
+      if (isMinted) {
+        const afaCid = await getAfaIpfsCid(tokenId, true);
+        const afaHighRes = buildIpfsUrl(afaCid);
+        if (afaHighRes) {
+          upgradeImage(afaHighRes, setAfaImageUrl);
+        }
+      }
+
+      const baycCid = metadata?.image?.startsWith('ipfs://') ? metadata.image.slice(7) : null;
+      const baycHighRes = buildIpfsUrl(baycCid);
       if (baycHighRes) {
-        preloadImageCached(baycUrl);
-      } else {
-        preloadImage(baycUrl);
+        upgradeImage(baycHighRes, setBaycImageUrl);
       }
     };
 
     load();
-    loadBaycMapping();
 
     return () => {
       cancelled = true;

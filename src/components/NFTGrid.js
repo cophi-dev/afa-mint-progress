@@ -86,6 +86,16 @@ function NFTGrid() {
   }, [zoom, totalRows]);
 
   useEffect(() => {
+    const prefetchModal = () => import('./ApeDetailsModal');
+    if ('requestIdleCallback' in window) {
+      const idleId = requestIdleCallback(prefetchModal, { timeout: 4000 });
+      return () => cancelIdleCallback(idleId);
+    }
+    const timeoutId = setTimeout(prefetchModal, 1500);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     prefetchMintStatus()
