@@ -10,6 +10,7 @@ import {
   Chip,
   Skeleton,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -29,22 +30,19 @@ import {
   tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
 
-// Match isMobile (max-width: 768px) so layout and JS behavior stay in sync.
-const DESKTOP_LAYOUT = '@media (min-width: 769px)';
-
 const style = {
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: { xs: 'calc(100% - 16px)', [DESKTOP_LAYOUT]: '90%' },
+  width: { xs: 'calc(100% - 16px)', md: '90%' },
   maxWidth: '920px',
   maxHeight: {
     xs: 'calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)))',
-    [DESKTOP_LAYOUT]: '90vh',
+    md: '90vh',
   },
   bgcolor: '#1E1E1E',
-  borderRadius: { xs: '14px', [DESKTOP_LAYOUT]: '16px' },
+  borderRadius: { xs: '14px', md: '16px' },
   border: '1px solid rgba(255, 255, 255, 0.1)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
   overflow: 'hidden',
@@ -58,7 +56,7 @@ const cardStyle = {
   background: 'transparent',
   boxShadow: 'none',
   display: 'flex',
-  flexDirection: { xs: 'column', [DESKTOP_LAYOUT]: 'row' },
+  flexDirection: { xs: 'column', md: 'row' },
   flex: 1,
   minHeight: 0,
   maxHeight: '100%',
@@ -125,13 +123,13 @@ const ImageStatusOverlay = ({ title, subtitle, isMobile }) => (
 
 const imageContainerStyle = {
   flexShrink: 0,
-  width: { xs: '100%', [DESKTOP_LAYOUT]: 'min(52vw, calc(90vh - 32px))' },
-  maxWidth: { [DESKTOP_LAYOUT]: '480px' },
+  width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
+  maxWidth: { md: '480px' },
   aspectRatio: '1',
   position: 'relative',
   backgroundColor: '#000',
   overflow: 'hidden',
-  touchAction: { xs: 'none', [DESKTOP_LAYOUT]: 'auto' },
+  touchAction: { xs: 'none', md: 'auto' },
 };
 
 const imageStyle = {
@@ -139,7 +137,7 @@ const imageStyle = {
   inset: 0,
   width: '100%',
   height: '100%',
-  objectFit: { xs: 'contain', [DESKTOP_LAYOUT]: 'cover' },
+  objectFit: { xs: 'contain', md: 'cover' },
   display: 'block',
 };
 
@@ -158,11 +156,11 @@ const contentStyle = {
   minWidth: 0,
   minHeight: 0,
   bgcolor: '#2A2A2A',
-  p: { xs: 1.25, [DESKTOP_LAYOUT]: 3 },
+  p: { xs: 1.25, md: 3 },
   display: 'flex',
   flexDirection: 'column',
-  gap: { xs: 0.75, [DESKTOP_LAYOUT]: 2 },
-  overflowY: { xs: 'hidden', [DESKTOP_LAYOUT]: 'auto' },
+  gap: { xs: 0.75, md: 2 },
+  overflowY: { xs: 'hidden', md: 'auto' },
 };
 
 const mobileInfoBoxStyle = {
@@ -178,8 +176,8 @@ const arrowButtonStyle = {
   transform: 'translateY(-50%)',
   bgcolor: 'rgba(0,0,0,0.3)',
   color: 'white',
-  width: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
-  height: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
+  width: { xs: 40, md: 'auto' },
+  height: { xs: 40, md: 'auto' },
   '&:hover': {
     bgcolor: 'rgba(0,0,0,0.5)',
   },
@@ -189,7 +187,8 @@ const arrowButtonStyle = {
 };
 
 const ApeDetailsModal = ({ open, onClose, apeData }) => {
-  const isMobile = useMediaQuery('(max-width:768px)');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [activeStep, setActiveStep] = useState(0);
   const [baycMetadata, setBaycMetadata] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -471,12 +470,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
           aria-label="Close details"
           sx={{
             position: 'absolute',
-            right: { xs: 6, [DESKTOP_LAYOUT]: 8 },
-            top: { xs: 6, [DESKTOP_LAYOUT]: 8 },
+            right: { xs: 6, md: 8 },
+            top: { xs: 6, md: 8 },
             color: 'white',
             zIndex: 2,
-            width: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
-            height: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
+            width: { xs: 40, md: 'auto' },
+            height: { xs: 40, md: 'auto' },
             bgcolor: 'rgba(0,0,0,0.55)',
             '&:hover': {
               bgcolor: 'rgba(0,0,0,0.7)',
@@ -528,9 +527,9 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
               sx={{
                 color: 'white',
                 position: 'absolute',
-                top: { xs: 12, [DESKTOP_LAYOUT]: 16 },
-                left: { xs: 12, [DESKTOP_LAYOUT]: 16 },
-                fontSize: { xs: '0.875rem', [DESKTOP_LAYOUT]: '1.25rem' },
+                top: { xs: 12, md: 16 },
+                left: { xs: 12, md: 16 },
+                fontSize: { xs: '0.875rem', md: '1.25rem' },
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 1,
                 pointerEvents: 'none',
@@ -599,7 +598,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 sx={{
                   fontWeight: 700,
                   color: '#fff',
-                  fontSize: { xs: '1rem', [DESKTOP_LAYOUT]: '1.5rem' },
+                  fontSize: { xs: '1rem', md: '1.5rem' },
                 }}
               >
                 AFA #{apeData.tokenId}
@@ -759,8 +758,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: isMobile ? 0.375 : 0.5,
-                  maxHeight: { xs: 'none', [DESKTOP_LAYOUT]: 140 },
-                  overflowY: { xs: 'hidden', [DESKTOP_LAYOUT]: 'auto' },
+                  maxHeight: { xs: 'none', md: 140 },
+                  overflowY: { xs: 'hidden', md: 'auto' },
                   pr: 0.5,
                   '&::-webkit-scrollbar': { width: 4 },
                   '&::-webkit-scrollbar-thumb': {
