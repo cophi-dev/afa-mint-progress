@@ -11,6 +11,7 @@ import {
   getDefaultZoom,
   computeVisibleRange,
   computeGridLayout,
+  computeGridMetrics,
 } from '../utils/gridLayout';
 import './NFTGrid.css';
 
@@ -55,27 +56,15 @@ function NFTGrid() {
 
   const displayTokenCount = filteredTokenIds?.length ?? TOTAL_TOKENS;
 
-  const { gridWidth, cellsPerRow, totalRows } = useMemo(() => {
-    const padding = isMobile ? 10 : 40;
-    const availableWidth = screenWidth - padding;
-    let maxCellsPerRow = Math.floor(availableWidth / zoom);
-
-    if (isMobile) {
-      const minColumnsOnMobile = Math.max(15, Math.floor(screenWidth / 24));
-      maxCellsPerRow = Math.max(maxCellsPerRow, minColumnsOnMobile);
-      if (zoom <= 16) {
-        maxCellsPerRow = Math.max(maxCellsPerRow, Math.floor(screenWidth / 12));
-      }
-    }
-
-    const cellsPerRow = Math.min(maxCellsPerRow, 100);
-    const actualGridWidth = isMobile
-      ? Math.min(cellsPerRow * zoom, availableWidth)
-      : cellsPerRow * zoom;
-    const totalRows = Math.ceil(displayTokenCount / cellsPerRow);
-
-    return { gridWidth: actualGridWidth, cellsPerRow, totalRows };
-  }, [zoom, screenWidth, isMobile, displayTokenCount]);
+  const { gridWidth, cellsPerRow, totalRows } = useMemo(
+    () => computeGridMetrics({
+      zoom,
+      screenWidth,
+      isMobile,
+      tokenCount: displayTokenCount,
+    }),
+    [zoom, screenWidth, isMobile, displayTokenCount]
+  );
 
   const syncVisibleRange = useCallback((scrollTop, viewportHeight) => {
     const next = computeVisibleRange(scrollTop, viewportHeight, zoom, totalRows);

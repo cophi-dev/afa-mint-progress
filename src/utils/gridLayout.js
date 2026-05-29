@@ -22,28 +22,28 @@ export const computeVisibleRange = (scrollTop, viewportHeight, zoom, totalRows) 
   return { startRow, endRow };
 };
 
+/** Columns that actually fit in the scroll viewport — must match rendered grid width. */
+export const computeGridMetrics = ({
+  zoom = DEFAULT_ZOOM,
+  screenWidth = window.innerWidth,
+  isMobile = window.innerWidth <= 768,
+  tokenCount = TOTAL_TOKENS,
+} = {}) => {
+  const padding = isMobile ? 10 : 40;
+  const availableWidth = Math.max(zoom, screenWidth - padding);
+  const cellsPerRow = Math.max(1, Math.min(Math.floor(availableWidth / zoom), 100));
+  const gridWidth = cellsPerRow * zoom;
+  const totalRows = Math.ceil(tokenCount / cellsPerRow);
+
+  return { gridWidth, cellsPerRow, totalRows };
+};
+
 export const computeGridLayout = ({
   zoom = DEFAULT_ZOOM,
   screenWidth = window.innerWidth,
   isMobile = window.innerWidth <= 768,
 } = {}) => {
-  const padding = isMobile ? 10 : 40;
-  const availableWidth = screenWidth - padding;
-  let maxCellsPerRow = Math.floor(availableWidth / zoom);
-
-  if (isMobile) {
-    const minColumnsOnMobile = Math.max(15, Math.floor(screenWidth / 24));
-    maxCellsPerRow = Math.max(maxCellsPerRow, minColumnsOnMobile);
-    if (zoom <= 16) {
-      maxCellsPerRow = Math.max(maxCellsPerRow, Math.floor(screenWidth / 12));
-    }
-  }
-
-  const cellsPerRow = Math.min(maxCellsPerRow, 100);
-  const gridWidth = isMobile
-    ? Math.min(cellsPerRow * zoom, availableWidth)
-    : cellsPerRow * zoom;
-  const totalRows = Math.ceil(TOTAL_TOKENS / cellsPerRow);
+  const { gridWidth, cellsPerRow, totalRows } = computeGridMetrics({ zoom, screenWidth, isMobile });
   const visibleRange = computeVisibleRange(0, window.innerHeight, zoom, totalRows);
 
   return { gridWidth, cellsPerRow, totalRows, visibleRange };
