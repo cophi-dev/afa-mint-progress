@@ -6,18 +6,28 @@ export const markImageCached = (url) => {
   if (url) loaded.add(url);
 };
 
-export const preloadImageCached = (url) => {
+const DEFAULT_PRELOAD_TIMEOUT_MS = 8000;
+
+export const preloadImageCached = (url, timeoutMs = DEFAULT_PRELOAD_TIMEOUT_MS) => {
   if (!url) return Promise.resolve(false);
   if (loaded.has(url)) return Promise.resolve(true);
 
   return new Promise((resolve) => {
-    const img = new Image();
+    let settled = false;
     const finish = (ok) => {
+      if (settled) return;
+      settled = true;
       if (ok) loaded.add(url);
       resolve(ok);
     };
+
+    const img = new Image();
     img.onload = () => finish(true);
     img.onerror = () => finish(false);
     img.src = url;
+
+    if (timeoutMs > 0) {
+      setTimeout(() => finish(false), timeoutMs);
+    }
   });
 };

@@ -65,6 +65,9 @@ export const getAfaIpfsUrl = async (tokenId, isMinted) => {
   return buildIpfsUrl(cid);
 };
 
+const IPFS_GATEWAY_TIMEOUT_MS = 8000;
+const IPFS_RESOLVE_OVERALL_MS = 14000;
+
 /** Resolve the first reachable IPFS gateway URL for a CID. */
 export const resolveIpfsUrl = async (cid) => {
   if (!cid) return null;
@@ -72,12 +75,12 @@ export const resolveIpfsUrl = async (cid) => {
   const urls = getIpfsGatewayUrls(cid);
   if (urls.length === 0) return null;
 
-  return new Promise((resolve) => {
+  const raceWinner = new Promise((resolve) => {
     let settled = false;
     let pending = urls.length;
 
     urls.forEach((url) => {
-      preloadImageCached(url).then((ok) => {
+      preloadImageCached(url, IPFS_GATEWAY_TIMEOUT_MS).then((ok) => {
         if (settled) return;
         if (ok) {
           settled = true;
@@ -89,6 +92,20 @@ export const resolveIpfsUrl = async (cid) => {
       });
     });
   });
+
+  const overallTimeout = new Promise((resolve) => {
+    setTimeout(() => resolve(null), IPFS_RESOLVE_OVERALL_MS);
+  });
+
+  const parallelResult = await Promise.race([raceWinner, overallTimeout]);
+  if (parallelResult) return parallelResult;
+
+  for (const url of urls) {
+    const ok = await preloadImageCached(url, IPFS_GATEWAY_TIMEOUT_MS);
+    if (ok) return url;
+  }
+
+  return null;
 };
 
 /** Resolve a working high-res URL for a minted AFA. */
