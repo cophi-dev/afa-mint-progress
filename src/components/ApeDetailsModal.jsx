@@ -236,8 +236,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setImageReady(true);
     setBaycMetadata(null);
     setMetadataLoading(true);
-    setAfaHighResLoading(false);
-    setHiresLoadingMessage(null);
+    setAfaHighResLoading(isMinted);
+    setHiresLoadingMessage(isMinted ? pickHiresLoadingMessage() : null);
 
     const loadMetadata = async () => {
       const cachedMetadata = getBaycMetadata(tokenId);
@@ -262,11 +262,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
         if (afaHighRes) {
           setAfaGatewayIndex(afaHighRes.gatewayIndex);
-          setHiresLoadingMessage(pickHiresLoadingMessage());
-          setAfaHighResLoading(true);
           setAfaImageUrl(afaHighRes.url);
           return;
         }
+
+        setAfaHighResLoading(false);
+        setHiresLoadingMessage(null);
       } catch {
         if (!cancelled) setAfaHighResLoading(false);
       }
@@ -415,7 +416,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const renderSlide = (image, stepIndex) => {
     const showUnminted = stepIndex === 0 && !apeData.isMinted;
     const showHiresLoading = stepIndex === 0 && apeData.isMinted && afaHighResLoading;
-    const showBlur = showUnminted || showHiresLoading;
+    const showBlur = showUnminted || (showHiresLoading && !isLocalThumbnailSrc(image.url));
 
     return (
       <Box
@@ -448,7 +449,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             }}
           />
         )}
-        {showBlur && (
+        {(showBlur || showHiresLoading) && (
           <ImageStatusOverlay
             isMobile={isMobile}
             title={showHiresLoading ? hiresLoadingMessage?.title : 'Not yet minted'}
