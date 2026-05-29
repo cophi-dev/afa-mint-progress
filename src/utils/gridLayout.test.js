@@ -1,4 +1,4 @@
-import { computeGridMetrics } from './gridLayout';
+import { computeGridMetrics, GRID_WRAPPER_PADDING } from './gridLayout';
 
 describe('computeGridMetrics', () => {
   it('keeps grid width aligned with cells per row on mobile', () => {
@@ -8,8 +8,10 @@ describe('computeGridMetrics', () => {
       isMobile: true,
     });
 
+    const inset = GRID_WRAPPER_PADDING.mobile * 2;
+
     expect(metrics.gridWidth).toBe(metrics.cellsPerRow * 32);
-    expect(metrics.cellsPerRow).toBe(Math.floor((390 - 10) / 32));
+    expect(metrics.cellsPerRow).toBe(Math.floor((390 - inset) / 32));
   });
 
   it('does not inflate columns beyond the viewport', () => {
@@ -19,6 +21,8 @@ describe('computeGridMetrics', () => {
       isMobile: true,
     });
 
-    expect(metrics.cellsPerRow).toBeLessThanOrEqual(Math.floor((390 - 10) / 32));
+    const inset = GRID_WRAPPER_PADDING.mobile * 2;
+
+    expect(metrics.cellsPerRow).toBeLessThanOrEqual(Math.floor((390 - inset) / 32));
   });
 });

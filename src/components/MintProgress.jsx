@@ -5,7 +5,7 @@ import Draggable from 'react-draggable';
 import './MintProgress.css';
 import { setAfaIpfsImageSrc, tryNextAfaIpfsGateway } from '../utils/imageUrls';
 
-const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false, onMintClick }) => {
+const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, hidden = false, onMintClick, docked = false }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768);
 
@@ -31,10 +31,12 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
     }).replace(/\//g, '/');
   };
 
+  const mintPercent = ((mintedCount / 10000) * 100).toFixed(mintedCount >= 1000 ? 1 : 2);
+
   const content = (
-    <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}${hidden ? ' hidden-for-modal' : ''}`}>
+    <Box className={`mint-progress ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : 'desktop'}${docked ? ' docked' : ''}${hidden ? ' hidden-for-modal' : ''}`}>
       <Box
-        className="drag-handle"
+        className={`drag-handle${docked ? ' dock-drag-handle' : ''}`}
         component={isMobile ? 'button' : 'div'}
         type={isMobile ? 'button' : undefined}
         onClick={isMobile ? () => setIsCollapsed(!isCollapsed) : undefined}
@@ -68,33 +70,51 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
               flexShrink: 0,
             }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                sx={{
-                  color: '#fff',
-                  fontSize: isMobile ? '0.8125rem' : '15px',
-                  fontWeight: 600,
-                  lineHeight: 1.2,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {mintDataLoading && mintedCount === 0
-                  ? 'Syncing mint data…'
-                  : `${mintedCount.toLocaleString()} / 10,000 minted`}
-                {mintDataLoading && mintedCount > 0 && (
-                  <Box
-                    component="span"
-                    sx={{ ml: 0.75, color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}
+              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}>
+                <Typography
+                  sx={{
+                    color: '#fff',
+                    fontSize: isMobile ? '0.8125rem' : '15px',
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                  }}
+                >
+                  {mintDataLoading && mintedCount === 0
+                    ? 'Syncing mint data…'
+                    : `${mintedCount.toLocaleString()} / 10,000`}
+                  {mintDataLoading && mintedCount > 0 && (
+                    <Box
+                      component="span"
+                      sx={{ ml: 0.75, color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}
+                    >
+                      · updating
+                    </Box>
+                  )}
+                </Typography>
+                {!mintDataLoading || mintedCount > 0 ? (
+                  <Typography
+                    sx={{
+                      color: '#6ee7a0',
+                      fontSize: isMobile ? '0.75rem' : '13px',
+                      fontWeight: 700,
+                      fontVariantNumeric: 'tabular-nums',
+                      flexShrink: 0,
+                      lineHeight: 1.2,
+                    }}
                   >
-                    · updating
-                  </Box>
-                )}
-              </Typography>
+                    {mintPercent}%
+                  </Typography>
+                ) : null}
+              </Box>
               <Box sx={{
                 mt: isMobile ? 0.5 : 0.75,
-                height: 3,
+                height: isMobile ? 3 : 4,
                 borderRadius: 2,
                 bgcolor: 'rgba(255,255,255,0.08)',
                 overflow: 'hidden',
+                position: 'relative',
               }}>
                 <Box sx={{
                   height: '100%',
@@ -102,6 +122,7 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
                   bgcolor: '#6ee7a0',
                   borderRadius: 2,
                   transition: 'width 0.6s ease',
+                  boxShadow: '0 0 8px rgba(110, 231, 160, 0.35)',
                 }} />
               </Box>
               {fetchError && (
@@ -252,7 +273,9 @@ const MintProgress = ({ mintedCount, latestMints, fetchError, mintDataLoading, h
     </Box>
   );
 
-  return isMobile ? content : (
+  if (docked || isMobile) return content;
+
+  return (
     <Draggable handle=".drag-handle" cancel=".latest-mints-list, .mint-entry">
       {content}
     </Draggable>

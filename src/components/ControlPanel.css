@@ -2,8 +2,9 @@
   border-radius: 12px !important;
 }
 
+.control-panel.desktop.docked,
 .control-panel.desktop {
-  max-width: 300px;
+  max-width: 280px;
 }
 
 .control-panel-trait-section {

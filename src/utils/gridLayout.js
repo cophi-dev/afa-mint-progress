@@ -5,6 +5,15 @@ export const DESKTOP_DEFAULT_ZOOM = 64;
 export const DEFAULT_ZOOM = MOBILE_DEFAULT_ZOOM;
 export const OVERSCAN_ROWS = 1;
 
+/** Horizontal inset on .nft-grid-wrapper — keep in sync with NFTGrid.css */
+export const GRID_WRAPPER_PADDING = {
+  mobile: 2,
+  desktop: 12,
+};
+
+export const getGridWrapperPadding = (isMobile = window.innerWidth <= 768) =>
+  (isMobile ? GRID_WRAPPER_PADDING.mobile : GRID_WRAPPER_PADDING.desktop);
+
 export const getDefaultZoom = (isMobile = window.innerWidth <= 768) =>
   (isMobile ? MOBILE_DEFAULT_ZOOM : DESKTOP_DEFAULT_ZOOM);
 
@@ -29,8 +38,8 @@ export const computeGridMetrics = ({
   isMobile = window.innerWidth <= 768,
   tokenCount = TOTAL_TOKENS,
 } = {}) => {
-  const padding = isMobile ? 10 : 40;
-  const availableWidth = Math.max(zoom, screenWidth - padding);
+  const inset = getGridWrapperPadding(isMobile) * 2;
+  const availableWidth = Math.max(zoom, screenWidth - inset);
   const cellsPerRow = Math.max(1, Math.min(Math.floor(availableWidth / zoom), 100));
   const gridWidth = cellsPerRow * zoom;
   const totalRows = Math.ceil(tokenCount / cellsPerRow);

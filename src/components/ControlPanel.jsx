@@ -104,10 +104,11 @@ const ControlPanel = ({
   traitCatalogLoading = false,
   onTraitFilterOpen,
   filteredMatchCount = null,
+  docked = false,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [traitFilterExpanded, setTraitFilterExpanded] = useState(false);
 
   const activeTraitCount = Object.values(traitFilters).reduce(
@@ -358,37 +359,43 @@ const ControlPanel = ({
         title={
           activeTraitCount > 0
             ? `Controls · ${filteredMatchCount ?? 0} apes match filters`
-            : 'Controls'
+            : 'Open controls'
         }
-        placement="left"
+        placement={docked ? 'top' : 'left'}
       >
         <IconButton
           className="control-panel-trigger"
           onClick={openDesktopPanel}
           aria-label="Open controls"
           sx={{
-            position: 'fixed',
-            top: 14,
-            right: 14,
-            zIndex: 1600,
-            width: 36,
-            height: 36,
-            bgcolor: 'rgba(16, 18, 22, 0.82)',
+            ...(docked
+              ? {}
+              : {
+                  position: 'fixed',
+                  top: 14,
+                  right: 14,
+                  zIndex: 1600,
+                }),
+            width: docked ? 44 : 36,
+            height: docked ? 44 : 36,
+            bgcolor: 'rgba(16, 18, 22, 0.92)',
             backdropFilter: 'blur(14px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '10px',
-            color: 'rgba(255,255,255,0.65)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.28)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: docked ? '12px' : '10px',
+            color: 'rgba(255,255,255,0.75)',
+            boxShadow: docked
+              ? '0 8px 32px rgba(0,0,0,0.4)'
+              : '0 2px 12px rgba(0,0,0,0.28)',
             transition: 'all 0.2s ease',
             '&:hover': {
-              bgcolor: 'rgba(24, 26, 30, 0.92)',
+              bgcolor: 'rgba(24, 26, 30, 0.96)',
               color: '#fff',
-              borderColor: 'rgba(255,255,255,0.14)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+              borderColor: 'rgba(255,255,255,0.16)',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.42)',
             },
           }}
         >
-          <TuneIcon sx={{ fontSize: 18 }} />
+          <TuneIcon sx={{ fontSize: docked ? 22 : 18 }} />
           {activeTraitCount > 0 && (
             <Box className="control-panel-trigger-badge" aria-hidden>
               {activeTraitCount > 9 ? '9+' : activeTraitCount}
@@ -421,7 +428,7 @@ const ControlPanel = ({
         />
       )}
       <Paper
-      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile ? ' expanded' : ''}${
+      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${docked ? ' docked' : ''}${isMobile ? ' expanded' : ''}${
         traitFilterExpanded ? ' trait-filter-expanded' : ''
       }${hidden ? ' hidden-for-modal' : ''}`}
       role={isMobile ? 'dialog' : undefined}
@@ -429,29 +436,33 @@ const ControlPanel = ({
       aria-label={isMobile ? 'Controls' : undefined}
       elevation={0}
       sx={{
-        position: 'fixed',
-        top: isMobile ? 'auto' : 14,
+        position: docked ? 'relative' : 'fixed',
+        top: isMobile ? 'auto' : docked ? 'auto' : 14,
         bottom: isMobile ? 0 : 'auto',
-        right: isMobile ? 0 : 14,
+        right: isMobile ? 0 : docked ? 'auto' : 14,
         left: isMobile ? 0 : 'auto',
-        width: isMobile ? '100%' : 300,
+        width: isMobile ? '100%' : docked ? 280 : 300,
         maxHeight: isMobile
           ? traitFilterExpanded
             ? 'min(78dvh, 560px)'
             : 'min(52dvh, 380px)'
-          : 'calc(100vh - 28px)',
+          : docked
+            ? 'min(420px, calc(100vh - 40px))'
+            : 'calc(100vh - 28px)',
         overflow: 'auto',
         bgcolor: 'rgba(16, 18, 22, 0.92)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
-        border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+        border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
         borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : undefined,
-        zIndex: 1600,
+        zIndex: docked ? 'auto' : 1600,
         transition: 'max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease',
-        borderRadius: isMobile ? '16px 16px 0 0' : '12px',
+        borderRadius: isMobile ? '16px 16px 0 0' : '14px',
         boxShadow: isMobile
           ? '0 -4px 24px rgba(0, 0, 0, 0.35)'
-          : '0 4px 24px rgba(0, 0, 0, 0.32)',
+          : docked
+            ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+            : '0 4px 24px rgba(0, 0, 0, 0.32)',
         paddingBottom: isMobile ? 'max(8px, env(safe-area-inset-bottom))' : 0,
       }}
     >

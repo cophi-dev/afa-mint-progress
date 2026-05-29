@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
+import Draggable from 'react-draggable';
 import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import VirtualGrid from './VirtualGrid';
@@ -14,6 +15,7 @@ import {
   computeGridMetrics,
 } from '../utils/gridLayout';
 import './NFTGrid.css';
+import './DesktopDock.css';
 
 const ApeDetailsModal = lazy(() => import('./ApeDetailsModal'));
 
@@ -239,7 +241,7 @@ function NFTGrid() {
           style={{
             width: gridWidth,
             height: totalRows * zoom,
-            margin: '0 auto',
+            margin: isMobile ? '0' : '0 auto',
           }}
         >
           {filteredTokenIds?.length === 0 && (
@@ -269,30 +271,64 @@ function NFTGrid() {
         />
       </Suspense>
 
-      <MintProgress
-        mintedCount={mintedCount}
-        latestMints={latestMints}
-        fetchError={fetchError}
-        mintDataLoading={mintDataLoading}
-        hidden={modalOpen && isMobile}
-        onMintClick={openApeModal}
-      />
-
-      <ControlPanel
-        onTokenSearch={handleTokenSearch}
-        onZoomChange={handleZoomChange}
-        onShowBayc={handleShowBayc}
-        zoom={zoom}
-        showBayc={showBayc}
-        isMobile={isMobile}
-        hidden={modalOpen && isMobile}
-        traitFilters={traitFilters}
-        onTraitFiltersChange={handleTraitFiltersChange}
-        traitCatalog={traitCatalog}
-        traitCatalogLoading={traitCatalogLoading}
-        onTraitFilterOpen={handleTraitFilterOpen}
-        filteredMatchCount={filteredTokenIds?.length ?? null}
-      />
+      {isMobile ? (
+        <>
+          <MintProgress
+            mintedCount={mintedCount}
+            latestMints={latestMints}
+            fetchError={fetchError}
+            mintDataLoading={mintDataLoading}
+            hidden={modalOpen}
+            onMintClick={openApeModal}
+          />
+          <ControlPanel
+            onTokenSearch={handleTokenSearch}
+            onZoomChange={handleZoomChange}
+            onShowBayc={handleShowBayc}
+            zoom={zoom}
+            showBayc={showBayc}
+            isMobile={isMobile}
+            hidden={modalOpen}
+            traitFilters={traitFilters}
+            onTraitFiltersChange={handleTraitFiltersChange}
+            traitCatalog={traitCatalog}
+            traitCatalogLoading={traitCatalogLoading}
+            onTraitFilterOpen={handleTraitFilterOpen}
+            filteredMatchCount={filteredTokenIds?.length ?? null}
+          />
+        </>
+      ) : (
+        <Draggable
+          handle=".dock-drag-handle"
+          cancel=".latest-mints-list, .mint-entry, .control-panel-inner, .MuiSlider-root, .MuiSwitch-root, .MuiInputBase-root, .trait-filter"
+        >
+          <div className="desktop-dock">
+            <MintProgress
+              mintedCount={mintedCount}
+              latestMints={latestMints}
+              fetchError={fetchError}
+              mintDataLoading={mintDataLoading}
+              onMintClick={openApeModal}
+              docked
+            />
+            <ControlPanel
+              onTokenSearch={handleTokenSearch}
+              onZoomChange={handleZoomChange}
+              onShowBayc={handleShowBayc}
+              zoom={zoom}
+              showBayc={showBayc}
+              isMobile={false}
+              docked
+              traitFilters={traitFilters}
+              onTraitFiltersChange={handleTraitFiltersChange}
+              traitCatalog={traitCatalog}
+              traitCatalogLoading={traitCatalogLoading}
+              onTraitFilterOpen={handleTraitFilterOpen}
+              filteredMatchCount={filteredTokenIds?.length ?? null}
+            />
+          </div>
+        </Draggable>
+      )}
     </>
   );
 }

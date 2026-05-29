@@ -45,13 +45,20 @@
   border-radius: 4px;
 }
 
+.mint-progress.docked {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
 @media (max-width: 768px) {
   .mint-progress.mobile {
     position: fixed !important;
     transform: none !important;
-    width: calc(100% - 24px) !important;
-    left: 12px !important;
-    right: 12px !important;
+    width: calc(100% - 8px) !important;
+    left: 4px !important;
+    right: 4px !important;
     bottom: auto !important;
     top: max(8px, env(safe-area-inset-top, 0px)) !important;
     padding: 8px 12px !important;
@@ -77,9 +84,9 @@
   .mint-progress.mobile.collapsed {
     padding: 7px 10px !important;
     width: auto !important;
-    left: 12px !important;
+    left: 4px !important;
     right: auto !important;
-    max-width: calc(100% - 24px) !important;
+    max-width: calc(100% - 8px) !important;
     max-height: none;
     overflow: visible;
   }
@@ -113,12 +120,12 @@
 
 @media (max-width: 480px) {
   .mint-progress.mobile {
-    width: calc(100% - 20px) !important;
-    left: 10px !important;
+    width: calc(100% - 8px) !important;
+    left: 4px !important;
   }
 
   .mint-progress.mobile.collapsed {
-    left: 10px !important;
-    max-width: calc(100% - 20px) !important;
+    left: 4px !important;
+    max-width: calc(100% - 8px) !important;
   }
 }

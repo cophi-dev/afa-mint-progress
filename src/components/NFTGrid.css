@@ -36,7 +36,7 @@ html, body, #root {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding: 20px;
+  padding: 12px;
 }
 
 /* Virtual grid shell — holds total scroll height */
@@ -208,17 +208,22 @@ html, body, #root {
   50% { transform: scale(1.05); opacity: 0.85; }
 }
 
-/* Mobile */
+/* Mobile — minimal inset so the grid fills the viewport */
 @media (max-width: 768px) {
   .nft-grid-wrapper {
-    padding: 8px;
+    padding: 2px;
     touch-action: pan-y;
+  }
+
+  .nft-grid {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 }
 
 @media (max-width: 480px) {
   .nft-grid-wrapper {
-    padding: 5px;
+    padding: 2px;
   }
 
   .loading-logo {
