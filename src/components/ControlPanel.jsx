@@ -108,6 +108,7 @@ const ControlPanel = ({
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
+  const [traitFilterExpanded, setTraitFilterExpanded] = useState(false);
 
   const activeTraitCount = Object.values(traitFilters).reduce(
     (sum, values) => sum + (values?.length ?? 0),
@@ -138,8 +139,16 @@ const ControlPanel = ({
     }
   };
 
-  const openMobilePanel = () => setIsExpanded(true);
+  const openMobilePanel = () => {
+    setIsExpanded(true);
+    onTraitFilterOpen?.();
+  };
   const closeMobilePanel = () => setIsExpanded(false);
+
+  const openDesktopPanel = () => {
+    setIsMinimized(false);
+    onTraitFilterOpen?.();
+  };
 
   const textFieldSx = {
     color: '#fff',
@@ -162,7 +171,26 @@ const ControlPanel = ({
 
   const panelContent = (
     <>
-      <Box sx={{ mb: isMobile ? 2 : 2 }}>
+      <Box sx={{ mb: isMobile ? 2 : 1.75 }} className="control-panel-trait-section">
+        <TraitFilter
+          catalog={traitCatalog}
+          filters={traitFilters}
+          onChange={onTraitFiltersChange}
+          matchCount={filteredMatchCount}
+          loading={traitCatalogLoading}
+          isMobile={isMobile}
+          onExpand={onTraitFilterOpen}
+          onExpandedChange={setTraitFilterExpanded}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          mb: isMobile ? 2 : 2,
+          pt: isMobile ? 1.5 : 1.25,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
         <Typography sx={isMobile ? mobileSectionLabelSx : sectionLabelSx}>Jump to token</Typography>
         <form onSubmit={handleSearch}>
           <TextField
@@ -265,18 +293,6 @@ const ControlPanel = ({
           sx={{ m: 0, color: '#fff' }}
         />
       )}
-
-      <Box sx={{ mt: isMobile ? 1.5 : 1.25, pt: isMobile ? 1.5 : 1.25, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <TraitFilter
-          catalog={traitCatalog}
-          filters={traitFilters}
-          onChange={onTraitFiltersChange}
-          matchCount={filteredMatchCount}
-          loading={traitCatalogLoading}
-          isMobile={isMobile}
-          onExpand={onTraitFilterOpen}
-        />
-      </Box>
     </>
   );
 
@@ -292,7 +308,14 @@ const ControlPanel = ({
 
   if (isMobile && !isExpanded && !hidden) {
     return (
-      <Tooltip title="Open controls" placement="left">
+      <Tooltip
+        title={
+          activeTraitCount > 0
+            ? `Controls · ${activeTraitCount} trait filter${activeTraitCount === 1 ? '' : 's'}`
+            : 'Open controls'
+        }
+        placement="left"
+      >
         <IconButton
           className="control-panel-fab"
           onClick={openMobilePanel}
@@ -331,10 +354,17 @@ const ControlPanel = ({
 
   if (!isMobile && isMinimized) {
     return (
-      <Tooltip title="Controls" placement="left">
+      <Tooltip
+        title={
+          activeTraitCount > 0
+            ? `Controls · ${filteredMatchCount ?? 0} apes match filters`
+            : 'Controls'
+        }
+        placement="left"
+      >
         <IconButton
           className="control-panel-trigger"
-          onClick={() => setIsMinimized(false)}
+          onClick={openDesktopPanel}
           aria-label="Open controls"
           sx={{
             position: 'fixed',
@@ -359,6 +389,11 @@ const ControlPanel = ({
           }}
         >
           <TuneIcon sx={{ fontSize: 18 }} />
+          {activeTraitCount > 0 && (
+            <Box className="control-panel-trigger-badge" aria-hidden>
+              {activeTraitCount > 9 ? '9+' : activeTraitCount}
+            </Box>
+          )}
         </IconButton>
       </Tooltip>
     );
@@ -386,7 +421,9 @@ const ControlPanel = ({
         />
       )}
       <Paper
-      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile ? ' expanded' : ''}${hidden ? ' hidden-for-modal' : ''}`}
+      className={`control-panel ${isMobile ? 'mobile' : 'desktop'}${isMobile ? ' expanded' : ''}${
+        traitFilterExpanded ? ' trait-filter-expanded' : ''
+      }${hidden ? ' hidden-for-modal' : ''}`}
       role={isMobile ? 'dialog' : undefined}
       aria-modal={isMobile ? true : undefined}
       aria-label={isMobile ? 'Controls' : undefined}
@@ -397,8 +434,12 @@ const ControlPanel = ({
         bottom: isMobile ? 0 : 'auto',
         right: isMobile ? 0 : 14,
         left: isMobile ? 0 : 'auto',
-        width: isMobile ? '100%' : 268,
-        maxHeight: isMobile ? 'min(52dvh, 380px)' : 'calc(100vh - 28px)',
+        width: isMobile ? '100%' : 300,
+        maxHeight: isMobile
+          ? traitFilterExpanded
+            ? 'min(78dvh, 560px)'
+            : 'min(52dvh, 380px)'
+          : 'calc(100vh - 28px)',
         overflow: 'auto',
         bgcolor: 'rgba(16, 18, 22, 0.92)',
         backdropFilter: 'blur(18px)',
@@ -445,17 +486,22 @@ const ControlPanel = ({
             >
               Controls
             </Typography>
-            {isMobile && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5 }}>
-                <Box className="control-panel-badge">{zoom}px</Box>
-                {showBayc && <Box className="control-panel-badge accent">BAYC</Box>}
-                {activeTraitCount > 0 && (
-                  <Box className="control-panel-badge accent">
-                    {filteredMatchCount ?? 0}
-                  </Box>
-                )}
-              </Box>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5, flexWrap: 'wrap' }}>
+              {activeTraitCount > 0 && (
+                <Box className="control-panel-badge accent" title="Filtered ape count">
+                  {filteredMatchCount ?? 0} match
+                </Box>
+              )}
+              {isMobile && (
+                <>
+                  <Box className="control-panel-badge">{zoom}px</Box>
+                  {showBayc && <Box className="control-panel-badge accent">BAYC</Box>}
+                </>
+              )}
+              {!isMobile && showBayc && (
+                <Box className="control-panel-badge accent">BAYC</Box>
+              )}
+            </Box>
           </Box>
 
           {!isMobile ? (

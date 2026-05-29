@@ -3,7 +3,35 @@
 }
 
 .control-panel.desktop {
-  max-width: 268px;
+  max-width: 300px;
+}
+
+.control-panel-trait-section {
+  margin-top: -0.25rem;
+}
+
+.control-panel-trigger {
+  position: relative;
+}
+
+.control-panel-trigger-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f1410;
+  background: #6ee7a0;
+  border: 1.5px solid rgba(16, 18, 22, 0.95);
+  pointer-events: none;
 }
 
 .control-panel-trigger {
@@ -12,6 +40,10 @@
 
 .control-panel.mobile.expanded {
   max-height: min(52dvh, 380px) !important;
+}
+
+.control-panel.mobile.expanded.trait-filter-expanded {
+  max-height: min(78dvh, 560px) !important;
 }
 
 .control-panel-backdrop {
@@ -159,5 +191,9 @@
 @media (max-width: 480px) {
   .control-panel.mobile.expanded {
     max-height: min(54dvh, 360px) !important;
+  }
+
+  .control-panel.mobile.expanded.trait-filter-expanded {
+    max-height: min(82dvh, 520px) !important;
   }
 }

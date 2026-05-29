@@ -1,64 +1,38 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
-  Chip,
   Collapse,
-  IconButton,
   Skeleton,
   Fade,
+  TextField,
+  InputAdornment,
+  Button,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import './TraitFilter.css';
 
-const sectionLabelSx = {
-  color: 'rgba(255,255,255,0.45)',
-  mb: 0.75,
-  fontSize: '0.65rem',
-  fontWeight: 600,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
+const TOTAL_APES = 10000;
+
+const TRAIT_TYPE_SHORT = {
+  Background: 'Bg',
+  Fur: 'Fur',
+  Clothes: 'Fit',
+  Eyes: 'Eyes',
+  Hat: 'Hat',
+  Mouth: 'Mouth',
+  Earring: 'Ear',
 };
 
-const chipSx = {
-  height: 24,
-  fontSize: '0.6875rem',
-  fontWeight: 500,
-  borderRadius: '6px',
-  border: '1px solid rgba(255,255,255,0.1)',
-  bgcolor: 'rgba(255,255,255,0.04)',
-  color: 'rgba(255,255,255,0.72)',
-  transition: 'all 0.18s ease',
-  '& .MuiChip-label': { px: 0.875 },
-  '&:hover': {
-    bgcolor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
-};
-
-const activeChipSx = {
-  ...chipSx,
-  bgcolor: 'rgba(110, 231, 160, 0.14)',
-  borderColor: 'rgba(110, 231, 160, 0.35)',
-  color: '#d4fae5',
-  '&:hover': {
-    bgcolor: 'rgba(110, 231, 160, 0.22)',
-    borderColor: 'rgba(110, 231, 160, 0.5)',
-  },
-};
-
-const typeChipSx = {
-  ...chipSx,
-  height: 26,
-  fontSize: '0.625rem',
-  flexShrink: 0,
-};
-
-const activeTypeChipSx = {
-  ...typeChipSx,
-  ...activeChipSx,
-  height: 26,
+const formatMatchLabel = (matchCount, activeFilterCount) => {
+  if (activeFilterCount === 0) {
+    return `Browse all ${TOTAL_APES.toLocaleString()} apes`;
+  }
+  const n = matchCount ?? 0;
+  return `${n.toLocaleString()} ${n === 1 ? 'ape' : 'apes'} match`;
 };
 
 const TraitFilter = ({
@@ -69,9 +43,11 @@ const TraitFilter = ({
   loading = false,
   isMobile = false,
   onExpand,
+  onExpandedChange,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [activeType, setActiveType] = useState(null);
+  const [valueSearch, setValueSearch] = useState('');
 
   const activeFilterCount = useMemo(
     () => Object.values(filters).reduce((sum, values) => sum + (values?.length ?? 0), 0),
@@ -82,6 +58,36 @@ const TraitFilter = ({
     if (!catalog || !activeType) return [];
     return catalog.find((entry) => entry.traitType === activeType)?.values ?? [];
   }, [catalog, activeType]);
+
+  const filteredTypeValues = useMemo(() => {
+    const query = valueSearch.trim().toLowerCase();
+    if (!query) return activeTypeValues;
+    return activeTypeValues.filter(({ value }) => value.toLowerCase().includes(query));
+  }, [activeTypeValues, valueSearch]);
+
+  useEffect(() => {
+    if (activeFilterCount > 0) setExpanded(true);
+  }, [activeFilterCount]);
+
+  useEffect(() => {
+    onExpandedChange?.(expanded);
+  }, [expanded, onExpandedChange]);
+
+  useEffect(() => {
+    setValueSearch('');
+  }, [activeType]);
+
+  const setExpandedState = (next) => {
+    if (next && !expanded) onExpand?.();
+    setExpanded(next);
+    if (next && catalog?.length && !activeType) {
+      setActiveType(catalog[0].traitType);
+    }
+  };
+
+  const handleToggleHeader = () => {
+    setExpandedState(!expanded);
+  };
 
   const handleToggleValue = (traitType, value) => {
     const current = filters[traitType] ?? [];
@@ -95,184 +101,308 @@ const TraitFilter = ({
     });
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = (e) => {
+    e?.stopPropagation?.();
     onChange({});
-    setActiveType(null);
+    setActiveType(catalog?.[0]?.traitType ?? null);
+    setValueSearch('');
   };
 
-  const handleExpand = () => {
-    if (!expanded) onExpand?.();
-    setExpanded((prev) => {
-      const next = !prev;
-      if (next && catalog?.length && !activeType) {
-        setActiveType(catalog[0].traitType);
-      }
-      return next;
-    });
-  };
+  const shortType = (traitType) => TRAIT_TYPE_SHORT[traitType] ?? traitType;
 
   return (
-    <Box className="trait-filter">
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          mb: expanded ? 0.75 : 0,
-        }}
+    <Box
+      className={`trait-filter trait-filter-card${activeFilterCount > 0 ? ' is-active' : ''}${
+        expanded ? ' is-expanded' : ''
+      }`}
+    >
+      <button
+        type="button"
+        className="trait-filter-header"
+        onClick={handleToggleHeader}
+        aria-expanded={expanded}
+        aria-controls="trait-filter-panel"
       >
-        <Typography
-          sx={{
-            ...sectionLabelSx,
-            mb: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}
-        >
-          <FilterListIcon sx={{ fontSize: 12 }} />
-          Trait filter
-          {activeFilterCount > 0 && (
-            <Box component="span" className="control-panel-badge accent" sx={{ ml: 0.25 }}>
-              {matchCount ?? 0}
-            </Box>
-          )}
-        </Typography>
+        <Box className="trait-filter-icon-wrap" aria-hidden>
+          <FilterListIcon sx={{ fontSize: isMobile ? 20 : 17 }} />
+        </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-          {activeFilterCount > 0 && (
-            <IconButton
-              size="small"
-              onClick={handleClearAll}
-              aria-label="Clear trait filters"
-              sx={{
-                color: 'rgba(255,255,255,0.4)',
-                p: 0.5,
-                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
-              }}
-            >
-              <CloseIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-          )}
-          <IconButton
-            size="small"
-            onClick={handleExpand}
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Collapse trait filter' : 'Expand trait filter'}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            component="span"
             sx={{
-              color: 'rgba(255,255,255,0.45)',
-              p: 0.5,
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.22s ease, color 0.18s ease',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+              display: 'block',
+              fontSize: isMobile ? '0.9375rem' : '0.8125rem',
+              fontWeight: 700,
+              color: '#fff',
+              lineHeight: 1.2,
             }}
           >
-            <ExpandMoreIcon sx={{ fontSize: 18 }} />
-          </IconButton>
+            Filter by traits
+          </Typography>
+          <Typography
+            component="span"
+            sx={{
+              display: 'block',
+              mt: 0.25,
+              fontSize: isMobile ? '0.75rem' : '0.6875rem',
+              color: activeFilterCount > 0 ? '#6ee7a0' : 'rgba(255,255,255,0.45)',
+              fontWeight: activeFilterCount > 0 ? 600 : 400,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {formatMatchLabel(matchCount, activeFilterCount)}
+            {activeFilterCount > 0 && (
+              <Box
+                component="span"
+                sx={{
+                  ml: 0.75,
+                  color: 'rgba(255,255,255,0.4)',
+                  fontWeight: 500,
+                }}
+              >
+                · {activeFilterCount} selected
+              </Box>
+            )}
+          </Typography>
         </Box>
-      </Box>
+
+        <ExpandMoreIcon
+          sx={{
+            fontSize: 22,
+            color: 'rgba(255,255,255,0.45)',
+            flexShrink: 0,
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.22s ease',
+          }}
+          aria-hidden
+        />
+      </button>
 
       {activeFilterCount > 0 && !expanded && (
         <Fade in>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 0.625,
+              px: 1.25,
+              pb: 1.25,
+              pt: 0,
+            }}
+          >
             {Object.entries(filters).flatMap(([traitType, values]) =>
               values.map((value) => (
-                <Chip
-                  key={`${traitType}-${value}`}
-                  label={`${traitType}: ${value}`}
-                  size="small"
-                  onDelete={() => handleToggleValue(traitType, value)}
-                  sx={activeChipSx}
-                />
+                <Box key={`${traitType}-${value}`} className="trait-filter-active-chip">
+                  <span className="trait-filter-active-chip-type">{shortType(traitType)}</span>
+                  <span>{value}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleValue(traitType, value)}
+                    aria-label={`Remove ${traitType}: ${value}`}
+                  >
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </button>
+                </Box>
               ))
             )}
+            <Button
+              size="small"
+              onClick={handleClearAll}
+              sx={{
+                minHeight: isMobile ? 36 : 28,
+                px: 1.25,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'none',
+                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+              }}
+            >
+              Clear all
+            </Button>
           </Box>
         </Fade>
       )}
 
-      <Collapse in={expanded} timeout={240}>
-        <Box sx={{ pt: 1 }}>
+      <Collapse in={expanded} timeout={260}>
+        <Box id="trait-filter-panel" sx={{ px: 1.25, pb: 1.25, pt: 0 }}>
+          <Typography
+            sx={{
+              mb: 1,
+              fontSize: '0.625rem',
+              lineHeight: 1.4,
+              color: 'rgba(255,255,255,0.38)',
+            }}
+          >
+            Match any trait within a category · All selected categories must match
+          </Typography>
+
           {loading && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-              <Skeleton variant="rounded" height={26} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
-              <Skeleton variant="rounded" height={72} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+              <Skeleton variant="rounded" height={32} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+              <Skeleton variant="rounded" height={40} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+              <Skeleton variant="rounded" height={100} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
             </Box>
           )}
 
           {!loading && catalog && (
             <>
-              <Box
-                className="trait-filter-types"
-                sx={{
-                  display: 'flex',
-                  gap: 0.5,
-                  overflowX: 'auto',
-                  pb: 0.75,
-                  '&::-webkit-scrollbar': { height: 3 },
-                  '&::-webkit-scrollbar-thumb': {
-                    bgcolor: 'rgba(255,255,255,0.15)',
-                    borderRadius: 2,
-                  },
-                }}
-              >
+              <Box className="trait-filter-types" role="tablist" aria-label="Trait categories">
                 {catalog.map(({ traitType }) => {
                   const selectedCount = filters[traitType]?.length ?? 0;
                   const isActive = activeType === traitType;
                   return (
-                    <Chip
+                    <button
                       key={traitType}
-                      label={selectedCount > 0 ? `${traitType} · ${selectedCount}` : traitType}
-                      size="small"
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`trait-filter-type-btn${isActive ? ' is-active' : ''}`}
                       onClick={() => setActiveType(traitType)}
-                      sx={isActive ? activeTypeChipSx : typeChipSx}
-                    />
+                    >
+                      {traitType}
+                      {selectedCount > 0 && (
+                        <span className="trait-filter-type-count">{selectedCount}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </Box>
+
+              <TextField
+                fullWidth
+                size="small"
+                placeholder={`Search ${activeType ?? 'traits'}…`}
+                value={valueSearch}
+                onChange={(e) => setValueSearch(e.target.value)}
+                sx={{
+                  mt: 1,
+                  mb: 1,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: isMobile ? '16px' : '0.8125rem',
+                    color: '#fff',
+                    bgcolor: 'rgba(0,0,0,0.2)',
+                    '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#6ee7a0',
+                      borderWidth: 1,
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    py: isMobile ? 1.125 : 0.75,
+                  },
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: valueSearch ? (
+                    <InputAdornment position="end">
+                      <button
+                        type="button"
+                        onClick={() => setValueSearch('')}
+                        aria-label="Clear search"
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'rgba(255,255,255,0.45)',
+                          cursor: 'pointer',
+                          padding: 4,
+                          display: 'flex',
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                      </button>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <Box
+                className={`trait-filter-values ${isMobile ? 'mobile' : 'desktop'}`}
+                role="group"
+                aria-label={`${activeType} values`}
+              >
+                {filteredTypeValues.length === 0 && (
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', py: 1 }}>
+                    No traits match &ldquo;{valueSearch}&rdquo;
+                  </Typography>
+                )}
+                {filteredTypeValues.map(({ value, count }) => {
+                  const selected = filters[activeType]?.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`trait-filter-value-btn${selected ? ' is-selected' : ''}`}
+                      onClick={() => handleToggleValue(activeType, value)}
+                      aria-pressed={selected}
+                    >
+                      {value}
+                      <span className="trait-filter-value-count">({count})</span>
+                    </button>
                   );
                 })}
               </Box>
 
               <Box
-                className="trait-filter-values"
                 sx={{
                   display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 0.5,
-                  maxHeight: isMobile ? 120 : 140,
-                  overflowY: 'auto',
-                  pr: 0.25,
-                  '&::-webkit-scrollbar': { width: 4 },
-                  '&::-webkit-scrollbar-thumb': {
-                    bgcolor: 'rgba(255,255,255,0.15)',
-                    borderRadius: 2,
-                  },
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mt: 1.25,
+                  pt: 1,
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  gap: 1,
                 }}
               >
-                {activeTypeValues.map(({ value, count }) => {
-                  const selected = filters[activeType]?.includes(value);
-                  return (
-                    <Chip
-                      key={value}
-                      label={`${value} (${count})`}
-                      size="small"
-                      onClick={() => handleToggleValue(activeType, value)}
-                      sx={selected ? activeChipSx : chipSx}
-                    />
-                  );
-                })}
-              </Box>
-
-              {activeFilterCount > 0 && (
                 <Typography
                   sx={{
-                    mt: 1,
-                    fontSize: '0.6875rem',
-                    color: 'rgba(255,255,255,0.45)',
+                    fontSize: isMobile ? '0.8125rem' : '0.75rem',
+                    fontWeight: 600,
+                    color: activeFilterCount > 0 ? '#6ee7a0' : 'rgba(255,255,255,0.45)',
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {matchCount ?? 0} apes match
+                  {formatMatchLabel(matchCount, activeFilterCount)}
                 </Typography>
-              )}
+
+                {activeFilterCount > 0 && (
+                  <Button
+                    size="small"
+                    onClick={handleClearAll}
+                    sx={{
+                      flexShrink: 0,
+                      minHeight: isMobile ? 36 : 28,
+                      px: 1.25,
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.55)',
+                      textTransform: 'none',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        color: '#fff',
+                        bgcolor: 'rgba(255,255,255,0.06)',
+                        borderColor: 'rgba(255,255,255,0.18)',
+                      },
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                )}
+              </Box>
             </>
+          )}
+
+          {!loading && !catalog && (
+            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', py: 0.5 }}>
+              Open to load BAYC trait data
+            </Typography>
           )}
         </Box>
       </Collapse>
