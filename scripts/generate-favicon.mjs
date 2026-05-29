@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import gifenc from 'gifenc';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import {
@@ -12,6 +12,7 @@ const { GIFEncoder, quantize, applyPalette } = gifenc;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(__dirname, '..', 'public');
+const framesDir = join(publicDir, 'favicon-frames');
 const FACE_PATH = join(publicDir, 'face.png');
 
 function buildIco(buffers) {
@@ -130,6 +131,12 @@ const staticSizes = [
 const defaultBg = BAYC_BACKGROUNDS[0];
 const rendered = new Map();
 
+mkdirSync(framesDir, { recursive: true });
+for (let i = 0; i < BAYC_BACKGROUNDS.length; i += 1) {
+  const frame = await renderFrame(32, BAYC_BACKGROUNDS[i]);
+  writeFileSync(join(framesDir, `${i}.png`), frame);
+}
+
 for (const { name, size } of staticSizes) {
   const buf = await renderFrame(size, defaultBg);
   rendered.set(size, buf);
@@ -144,3 +151,4 @@ writeFileSync(
 );
 
 console.log('Generated face.png favicons with BAYC background colors in public/');
+console.log(`Wrote ${BAYC_BACKGROUNDS.length} animation frames to public/favicon-frames/`);
