@@ -33,6 +33,29 @@ export const getAfaThumbnailUrl = (tokenId) => `/images/${tokenId}.webp`;
 
 export const getAfaThumbnailFallbackUrl = (tokenId) => `/images/${tokenId}.png`;
 
+export const getAfaLocalHiresUrl = (tokenId) => `/hires/${tokenId}.webp`;
+
+export const isLocalHiresSrc = (src) =>
+  typeof src === 'string' && src.includes('/hires/');
+
+let hiresManifestPromise = null;
+
+const loadHiresManifest = async () => {
+  if (!hiresManifestPromise) {
+    hiresManifestPromise = import('../data/hires_manifest.json')
+      .then((module) => new Set(module.default.map(String)))
+      .catch(() => new Set());
+  }
+  return hiresManifestPromise;
+};
+
+export const prefetchHiresManifest = () => loadHiresManifest();
+
+export const hasLocalHires = async (tokenId) => {
+  const manifest = await loadHiresManifest();
+  return manifest.has(String(tokenId));
+};
+
 export const getBaycThumbnailUrl = (tokenId) => `/bayc-images/${tokenId}.webp`;
 
 export const getBaycThumbnailFallbackUrl = (tokenId) => `/bayc-images/${tokenId}.png`;

@@ -25,6 +25,7 @@
     "build": "react-scripts build",
     "generate-webp": "node scripts/generate-webp.mjs",
     "generate-favicon": "node scripts/generate-favicon.mjs",
+    "sync-minted-hires": "node scripts/sync-minted-hires.mjs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

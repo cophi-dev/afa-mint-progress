@@ -23,6 +23,9 @@ import { invalidateImageCached } from '../utils/imageCache';
 import {
   getAfaThumbnailFallbackUrl,
   getBaycThumbnailFallbackUrl,
+  getAfaLocalHiresUrl,
+  hasLocalHires,
+  isLocalHiresSrc,
   getAfaIpfsCid,
   getIpfsGatewayUrls,
   findGatewayIndexForSrc,
@@ -340,6 +343,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
           return;
         }
 
+        if (await hasLocalHires(tokenId)) {
+          setAfaGatewayIndex(null);
+          setAfaHiresUrl(getAfaLocalHiresUrl(tokenId));
+          return;
+        }
+
         const started = await beginAfaHiresAttempt(tokenId);
         if (cancelled) return;
         if (!started) scheduleAfaHiresRetry(tokenId);
@@ -442,31 +451,52 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     if (!apeData?.isMinted) return;
 
     const img = event.currentTarget;
+    const src = img.currentSrc || img.src;
+
     if (!isValidHiresImage(img)) {
-      await tryNextAfaHiresGateway(img.currentSrc || img.src);
+      if (isLocalHiresSrc(src)) {
+        const started = await beginAfaHiresAttempt(apeData.tokenId);
+        if (!started) scheduleAfaHiresRetry(apeData.tokenId);
+        return;
+      }
+      await tryNextAfaHiresGateway(src);
       return;
     }
 
     const cid = await getAfaIpfsCid(apeData.tokenId, true);
-    if (cid && afaGatewayIndex != null) {
-      cacheIpfsHit(cid, img.currentSrc || img.src, afaGatewayIndex);
+    if (cid && afaGatewayIndex != null && !isLocalHiresSrc(src)) {
+      cacheIpfsHit(cid, src, afaGatewayIndex);
     }
 
     afaRetryRoundRef.current = 0;
     setAfaHiresReady(true);
     clearAfaHighResLoading();
-  }, [apeData, afaGatewayIndex, clearAfaHighResLoading, tryNextAfaHiresGateway]);
+  }, [
+    apeData,
+    afaGatewayIndex,
+    beginAfaHiresAttempt,
+    clearAfaHighResLoading,
+    scheduleAfaHiresRetry,
+    tryNextAfaHiresGateway,
+  ]);
 
   const handleHiresImageError = useCallback(async (event) => {
     if (!apeData?.isMinted) return;
 
     const src = event.currentTarget.currentSrc || event.currentTarget.src;
+
+    if (isLocalHiresSrc(src)) {
+      const started = await beginAfaHiresAttempt(apeData.tokenId);
+      if (!started) scheduleAfaHiresRetry(apeData.tokenId);
+      return;
+    }
+
     if (await tryNextAfaHiresGateway(src)) return;
 
     setAfaHiresUrl(null);
     setAfaHiresReady(false);
     scheduleAfaHiresRetry(apeData.tokenId);
-  }, [apeData, scheduleAfaHiresRetry, tryNextAfaHiresGateway]);
+  }, [apeData, beginAfaHiresAttempt, scheduleAfaHiresRetry, tryNextAfaHiresGateway]);
 
   const handleImageError = useCallback(async (stepIndex, event) => {
     if (!apeData) return;

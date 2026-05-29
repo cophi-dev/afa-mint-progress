@@ -3,7 +3,7 @@ import Draggable from 'react-draggable';
 import MintProgress from './MintProgress';
 import ControlPanel from './ControlPanel';
 import VirtualGrid from './VirtualGrid';
-import { getAfaThumbnailUrl, getBaycThumbnailUrl } from '../utils/imageUrls';
+import { getAfaThumbnailUrl, getBaycThumbnailUrl, prefetchHiresManifest } from '../utils/imageUrls';
 import { loadBaycMapping, getTraitCatalog, filterTokenIds } from '../data/baycMetadata';
 import { loadMintCache, prefetchMintStatus } from '../services/mintStatusCache';
 import { buildAfaEditorUrl, AFA_CLAIM_URL } from '../constants/editor';
@@ -89,6 +89,7 @@ function NFTGrid() {
   useEffect(() => {
     let cancelled = false;
 
+    prefetchHiresManifest();
     prefetchMintStatus()
       .then((result) => {
         if (cancelled || !result) return;
