@@ -22,7 +22,6 @@ import { getBaycMetadata, getBaycMetadataAsync } from '../data/baycMetadata';
 import { invalidateImageCached } from '../utils/imageCache';
 import {
   getAfaThumbnailFallbackUrl,
-  getAfaThumbnailUrl,
   getBaycThumbnailFallbackUrl,
   getAfaIpfsCid,
   getIpfsGatewayUrls,
