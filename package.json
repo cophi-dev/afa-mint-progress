@@ -12,6 +12,7 @@
     "@testing-library/user-event": "^13.5.0",
     "ajv": "^8.17.1",
     "ethers": "^5.7.2",
+    "gifenc": "^1.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
@@ -23,6 +24,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "generate-webp": "node scripts/generate-webp.mjs",
+    "generate-favicon": "node scripts/generate-favicon.mjs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
