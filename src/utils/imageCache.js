@@ -6,6 +6,10 @@ export const markImageCached = (url) => {
   if (url) loaded.add(url);
 };
 
+export const invalidateImageCached = (url) => {
+  if (url) loaded.delete(url);
+};
+
 const DEFAULT_PRELOAD_TIMEOUT_MS = 8000;
 
 export const preloadImageCached = (url, timeoutMs = DEFAULT_PRELOAD_TIMEOUT_MS) => {
@@ -22,7 +26,7 @@ export const preloadImageCached = (url, timeoutMs = DEFAULT_PRELOAD_TIMEOUT_MS) 
     };
 
     const img = new Image();
-    img.onload = () => finish(true);
+    img.onload = () => finish(img.naturalWidth > 0 && img.naturalHeight > 0);
     img.onerror = () => finish(false);
     img.src = url;
 

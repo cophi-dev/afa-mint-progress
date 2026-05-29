@@ -19,6 +19,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import { getBaycMetadata, getBaycMetadataAsync } from '../data/baycMetadata';
+import { invalidateImageCached } from '../utils/imageCache';
 import {
   getAfaThumbnailFallbackUrl,
   getAfaThumbnailUrl,
@@ -26,10 +27,11 @@ import {
   getAfaIpfsCid,
   getIpfsGatewayUrls,
   findGatewayIndexForSrc,
+  getNextUntriedGatewayIndex,
+  cacheIpfsHit,
   ipfsToHttpUrl,
   resolveAfaIpfsUrlWithMeta,
   resolveIpfsUrl,
-  setAfaIpfsImageSrc,
 } from '../utils/imageUrls';
 
 const style = {
@@ -82,6 +84,12 @@ const HIRES_LOADING_MESSAGES = [
 const pickHiresLoadingMessage = () =>
   HIRES_LOADING_MESSAGES[Math.floor(Math.random() * HIRES_LOADING_MESSAGES.length)];
 
+const MIN_HIRES_DIMENSION = 256;
+const MAX_IPFS_RETRY_ROUNDS = 4;
+
+const isValidHiresImage = (img) =>
+  img.naturalWidth >= MIN_HIRES_DIMENSION && img.naturalHeight >= MIN_HIRES_DIMENSION;
+
 const ImageStatusOverlay = ({ title, subtitle, isMobile }) => (
   <Box
     sx={{
@@ -94,7 +102,7 @@ const ImageStatusOverlay = ({ title, subtitle, isMobile }) => (
       gap: 1,
       px: 3,
       textAlign: 'center',
-      background: 'rgba(0, 0, 0, 0.35)',
+      background: 'rgba(0, 0, 0, 0.55)',
       pointerEvents: 'none',
       zIndex: 1,
     }}
@@ -142,9 +150,6 @@ const imageStyle = {
   objectFit: { xs: 'contain', md: 'cover' },
   display: 'block',
 };
-
-const isLocalThumbnailSrc = (src) =>
-  typeof src === 'string' && (src.includes('/images/') || src.includes('/bayc-images/'));
 
 const infoBoxStyle = {
   bgcolor: '#363636',
@@ -195,6 +200,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [baycMetadata, setBaycMetadata] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [afaImageUrl, setAfaImageUrl] = useState(null);
+  const [afaHiresUrl, setAfaHiresUrl] = useState(null);
+  const [afaHiresReady, setAfaHiresReady] = useState(false);
   const [afaGatewayIndex, setAfaGatewayIndex] = useState(null);
   const [baycImageUrl, setBaycImageUrl] = useState(null);
   const [imageReady, setImageReady] = useState(false);
@@ -206,6 +213,9 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const touchStartY = useRef(null);
   const swipeLocked = useRef(null);
   const dragOffsetRef = useRef(0);
+  const afaTriedGatewaysRef = useRef(new Set());
+  const afaRetryTimerRef = useRef(null);
+  const afaRetryRoundRef = useRef(0);
   const maxSteps = 2;
 
   useEffect(() => {
@@ -214,10 +224,69 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     }
   }, [open, apeData?.tokenId]);
 
+  const clearAfaHighResLoading = useCallback(() => {
+    setAfaHighResLoading(false);
+    setHiresLoadingMessage(null);
+  }, []);
+
+  const beginAfaHiresAttempt = useCallback(async (tokenId) => {
+    const cid = await getAfaIpfsCid(tokenId, true);
+    if (!cid) return false;
+
+    afaTriedGatewaysRef.current = new Set();
+    const afaHighRes = await resolveAfaIpfsUrlWithMeta(tokenId, true);
+    if (afaHighRes) {
+      afaTriedGatewaysRef.current.add(afaHighRes.gatewayIndex);
+      setAfaGatewayIndex(afaHighRes.gatewayIndex);
+      setAfaHiresUrl(afaHighRes.url);
+      setAfaHiresReady(false);
+      return true;
+    }
+
+    const urls = getIpfsGatewayUrls(cid);
+    const nextIndex = getNextUntriedGatewayIndex(afaTriedGatewaysRef.current, urls.length);
+    if (nextIndex >= 0) {
+      afaTriedGatewaysRef.current.add(nextIndex);
+      setAfaGatewayIndex(nextIndex);
+      setAfaHiresUrl(urls[nextIndex]);
+      setAfaHiresReady(false);
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  const scheduleAfaHiresRetry = useCallback((tokenId) => {
+    if (afaRetryTimerRef.current) clearTimeout(afaRetryTimerRef.current);
+
+    if (afaRetryRoundRef.current >= MAX_IPFS_RETRY_ROUNDS) {
+      setAfaHiresUrl(null);
+      setAfaHiresReady(false);
+      clearAfaHighResLoading();
+      return;
+    }
+
+    const delay = 2500 + afaRetryRoundRef.current * 1500;
+    afaRetryTimerRef.current = window.setTimeout(async () => {
+      afaRetryRoundRef.current += 1;
+      setAfaHighResLoading(true);
+      setHiresLoadingMessage(pickHiresLoadingMessage());
+
+      const started = await beginAfaHiresAttempt(tokenId);
+      if (!started) scheduleAfaHiresRetry(tokenId);
+    }, delay);
+  }, [beginAfaHiresAttempt, clearAfaHighResLoading]);
+
   useEffect(() => {
     if (!open || !apeData) {
+      if (afaRetryTimerRef.current) {
+        clearTimeout(afaRetryTimerRef.current);
+        afaRetryTimerRef.current = null;
+      }
       setBaycMetadata(null);
       setAfaImageUrl(null);
+      setAfaHiresUrl(null);
+      setAfaHiresReady(false);
       setAfaGatewayIndex(null);
       setBaycImageUrl(null);
       setImageReady(false);
@@ -230,7 +299,15 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     let cancelled = false;
     const { tokenId, image, baycImage, isMinted } = apeData;
 
+    afaTriedGatewaysRef.current = new Set();
+    afaRetryRoundRef.current = 0;
+    if (afaRetryTimerRef.current) {
+      clearTimeout(afaRetryTimerRef.current);
+      afaRetryTimerRef.current = null;
+    }
     setAfaImageUrl(image);
+    setAfaHiresUrl(null);
+    setAfaHiresReady(false);
     setAfaGatewayIndex(null);
     setBaycImageUrl(baycImage);
     setImageReady(true);
@@ -257,19 +334,18 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
     const loadAfaHighRes = async () => {
       try {
-        const afaHighRes = await resolveAfaIpfsUrlWithMeta(tokenId, true);
+        const cid = await getAfaIpfsCid(tokenId, true);
         if (cancelled) return;
-
-        if (afaHighRes) {
-          setAfaGatewayIndex(afaHighRes.gatewayIndex);
-          setAfaImageUrl(afaHighRes.url);
+        if (!cid) {
+          clearAfaHighResLoading();
           return;
         }
 
-        setAfaHighResLoading(false);
-        setHiresLoadingMessage(null);
+        const started = await beginAfaHiresAttempt(tokenId);
+        if (cancelled) return;
+        if (!started) scheduleAfaHiresRetry(tokenId);
       } catch {
-        if (!cancelled) setAfaHighResLoading(false);
+        if (!cancelled) scheduleAfaHiresRetry(tokenId);
       }
     };
 
@@ -278,8 +354,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
     return () => {
       cancelled = true;
+      if (afaRetryTimerRef.current) {
+        clearTimeout(afaRetryTimerRef.current);
+        afaRetryTimerRef.current = null;
+      }
     };
-  }, [open, apeData]);
+  }, [open, apeData, beginAfaHiresAttempt, clearAfaHighResLoading, scheduleAfaHiresRetry]);
 
   const handleNext = useCallback(() => {
     setActiveStep((prevStep) => Math.min(prevStep + 1, maxSteps - 1));
@@ -337,54 +417,68 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     setDragOffset(0);
   }, [isMobile, activeStep, maxSteps, handleNext, handleBack]);
 
-  const clearAfaHighResLoading = useCallback(() => {
-    setAfaHighResLoading(false);
-  }, []);
+  const tryNextAfaHiresGateway = useCallback(async (failedSrc) => {
+    if (!apeData?.isMinted) return false;
 
-  const handleImageLoad = useCallback((stepIndex, event) => {
-    if (stepIndex !== 0 || !apeData?.isMinted) return;
+    const cid = await getAfaIpfsCid(apeData.tokenId, true);
+    const urls = getIpfsGatewayUrls(cid);
+    const currentIndex = afaGatewayIndex ?? findGatewayIndexForSrc(failedSrc, cid);
+
+    if (currentIndex >= 0) {
+      invalidateImageCached(urls[currentIndex]);
+      afaTriedGatewaysRef.current.add(currentIndex);
+    }
+
+    const nextIndex = getNextUntriedGatewayIndex(afaTriedGatewaysRef.current, urls.length);
+    if (nextIndex < 0) return false;
+
+    afaTriedGatewaysRef.current.add(nextIndex);
+    setAfaGatewayIndex(nextIndex);
+    setAfaHiresUrl(urls[nextIndex]);
+    setAfaHiresReady(false);
+    return true;
+  }, [apeData, afaGatewayIndex]);
+
+  const handleHiresImageLoad = useCallback(async (event) => {
+    if (!apeData?.isMinted) return;
+
+    const img = event.currentTarget;
+    if (!isValidHiresImage(img)) {
+      await tryNextAfaHiresGateway(img.currentSrc || img.src);
+      return;
+    }
+
+    const cid = await getAfaIpfsCid(apeData.tokenId, true);
+    if (cid && afaGatewayIndex != null) {
+      cacheIpfsHit(cid, img.currentSrc || img.src, afaGatewayIndex);
+    }
+
+    afaRetryRoundRef.current = 0;
+    setAfaHiresReady(true);
+    clearAfaHighResLoading();
+  }, [apeData, afaGatewayIndex, clearAfaHighResLoading, tryNextAfaHiresGateway]);
+
+  const handleHiresImageError = useCallback(async (event) => {
+    if (!apeData?.isMinted) return;
 
     const src = event.currentTarget.currentSrc || event.currentTarget.src;
-    if (!isLocalThumbnailSrc(src)) {
-      clearAfaHighResLoading();
-    }
-  }, [apeData, clearAfaHighResLoading]);
+    if (await tryNextAfaHiresGateway(src)) return;
+
+    setAfaHiresUrl(null);
+    setAfaHiresReady(false);
+    scheduleAfaHiresRetry(apeData.tokenId);
+  }, [apeData, scheduleAfaHiresRetry, tryNextAfaHiresGateway]);
 
   const handleImageError = useCallback(async (stepIndex, event) => {
     if (!apeData) return;
 
     const img = event.target;
     const stage = img.dataset.fallbackStage || 'webp';
-    const src = img.currentSrc || img.src;
 
     if (stepIndex === 0) {
-      if (apeData.isMinted && !isLocalThumbnailSrc(src)) {
-        const cid = await getAfaIpfsCid(apeData.tokenId, true);
-        const urls = getIpfsGatewayUrls(cid);
-        const currentIndex = afaGatewayIndex ?? findGatewayIndexForSrc(src, cid);
-        const nextIndex = currentIndex + 1;
-
-        if (nextIndex < urls.length) {
-          setAfaGatewayIndex(nextIndex);
-          setAfaImageUrl(urls[nextIndex]);
-          return;
-        }
-
-        clearAfaHighResLoading();
-        setAfaGatewayIndex(null);
-        setAfaImageUrl(getAfaThumbnailUrl(apeData.tokenId));
-        return;
-      }
-
       if (stage === 'webp') {
         img.dataset.fallbackStage = 'png';
-        img.src = getAfaThumbnailFallbackUrl(apeData.tokenId);
-        return;
-      }
-      if (stage === 'png' && apeData.isMinted) {
-        img.dataset.fallbackStage = 'ipfs';
-        const ipfsUrl = await setAfaIpfsImageSrc(img, apeData.tokenId, true);
-        if (!ipfsUrl) clearAfaHighResLoading();
+        setAfaImageUrl(getAfaThumbnailFallbackUrl(apeData.tokenId));
       }
       return;
     }
@@ -401,7 +495,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const metadata = baycMetadata ?? await getBaycMetadataAsync(apeData.tokenId);
     const baycHighRes = ipfsToHttpUrl(metadata?.image);
     if (baycHighRes) img.src = baycHighRes;
-  }, [apeData, afaGatewayIndex, baycMetadata, clearAfaHighResLoading]);
+  }, [apeData, baycMetadata]);
 
   if (!apeData) return null;
 
@@ -415,8 +509,13 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
   const renderSlide = (image, stepIndex) => {
     const showUnminted = stepIndex === 0 && !apeData.isMinted;
-    const showHiresLoading = stepIndex === 0 && apeData.isMinted && afaHighResLoading;
-    const showBlur = showUnminted || (showHiresLoading && !isLocalThumbnailSrc(image.url));
+    const isAfaSlide = stepIndex === 0;
+    const showHiresLoading = isAfaSlide && apeData.isMinted && afaHighResLoading && !afaHiresReady;
+    const showBlur = showUnminted || showHiresLoading;
+
+    const blurStyle = showBlur
+      ? { filter: 'blur(20px)', transform: isMobile ? 'none' : 'scale(1.08)' }
+      : {};
 
     return (
       <Box
@@ -430,24 +529,38 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
         }}
       >
         {image.url && (
-          <CardMedia
-            component="img"
-            key={`${stepIndex}-${image.url}`}
-            image={image.url}
-            alt={`${image.title} #${apeData.tokenId}`}
-            data-ipfs-gateway={stepIndex === 0 ? afaGatewayIndex ?? undefined : undefined}
-            onLoad={(event) => handleImageLoad(stepIndex, event)}
-            onError={(event) => handleImageError(stepIndex, event)}
-            sx={{
-              ...imageStyle,
-              opacity: imageReady ? 1 : 0,
-              transition: 'filter 0.45s ease, transform 0.45s ease, opacity 0.2s ease',
-              ...(showBlur && {
-                filter: 'blur(20px)',
-                transform: isMobile ? 'none' : 'scale(1.08)',
-              }),
-            }}
-          />
+          <>
+            <CardMedia
+              component="img"
+              key={`${stepIndex}-base-${image.url}`}
+              image={image.url}
+              alt={`${image.title} #${apeData.tokenId}`}
+              onError={(event) => handleImageError(stepIndex, event)}
+              sx={{
+                ...imageStyle,
+                opacity: imageReady ? 1 : 0,
+                transition: 'filter 0.45s ease, transform 0.45s ease, opacity 0.2s ease',
+                ...blurStyle,
+              }}
+            />
+            {isAfaSlide && apeData.isMinted && afaHiresUrl && (
+              <CardMedia
+                component="img"
+                key={`${stepIndex}-hires-${afaHiresUrl}`}
+                image={afaHiresUrl}
+                alt={`${image.title} #${apeData.tokenId} hi-res`}
+                data-ipfs-gateway={afaGatewayIndex ?? undefined}
+                onLoad={handleHiresImageLoad}
+                onError={handleHiresImageError}
+                sx={{
+                  ...imageStyle,
+                  opacity: afaHiresReady ? 1 : 0,
+                  transition: 'opacity 0.35s ease',
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
+          </>
         )}
         {(showBlur || showHiresLoading) && (
           <ImageStatusOverlay

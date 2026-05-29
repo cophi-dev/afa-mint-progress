@@ -1,13 +1,9 @@
-import { preloadImageCached } from './imageCache';
+import { invalidateImageCached, preloadImageCached } from './imageCache';
 
 const IPFS_GATEWAYS = [
   process.env.REACT_APP_IPFS_GATEWAY,
-  'https://nftstorage.link/ipfs',
-  'https://w3s.link/ipfs',
-  'https://gateway.pinata.cloud/ipfs',
   'https://ipfs.io/ipfs',
-  // dweb.link often 504s on large assets — keep as last resort
-  'https://dweb.link/ipfs',
+  'https://w3s.link/ipfs',
 ].filter(Boolean);
 
 const uniqueGateways = [...new Set(IPFS_GATEWAYS)];
@@ -67,8 +63,37 @@ export const getAfaIpfsUrl = async (tokenId, isMinted) => {
   return buildIpfsUrl(cid);
 };
 
-const IPFS_GATEWAY_TIMEOUT_MS = 5000;
-const IPFS_RESOLVE_OVERALL_MS = 9000;
+const IPFS_GATEWAY_TIMEOUT_MS = 10000;
+const IPFS_GATEWAY_RETRIES = 2;
+const IPFS_RETRY_DELAY_MS = 1500;
+
+const ipfsSessionCacheKey = (cid) => `afa-ipfs-hit:${cid}`;
+
+const sleep = (ms) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
+export const getCachedIpfsHit = (cid) => {
+  if (!cid || typeof sessionStorage === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(ipfsSessionCacheKey(cid));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.url && Number.isFinite(parsed.gatewayIndex)) return parsed;
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+export const cacheIpfsHit = (cid, url, gatewayIndex) => {
+  if (!cid || typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(ipfsSessionCacheKey(cid), JSON.stringify({ url, gatewayIndex }));
+  } catch {
+    // sessionStorage full or blocked — ignore
+  }
+};
 
 /** Match a loaded image URL back to a gateway index (handles subdomain redirects). */
 export const findGatewayIndexForSrc = (src, cid) => {
@@ -88,36 +113,49 @@ export const findGatewayIndexForSrc = (src, cid) => {
   });
 };
 
+/** Pick the next gateway index that has not been tried yet. */
+export const getNextUntriedGatewayIndex = (triedIndices, urlCount) => {
+  if (!urlCount) return -1;
+  for (let index = 0; index < urlCount; index += 1) {
+    if (!triedIndices.has(index)) return index;
+  }
+  return -1;
+};
+
+const preloadGatewayWithRetry = async (url) => {
+  for (let attempt = 0; attempt <= IPFS_GATEWAY_RETRIES; attempt += 1) {
+    if (attempt > 0) {
+      await sleep(IPFS_RETRY_DELAY_MS * attempt);
+      invalidateImageCached(url);
+    }
+    const ok = await preloadImageCached(url, IPFS_GATEWAY_TIMEOUT_MS);
+    if (ok) return true;
+  }
+  return false;
+};
+
 /** Resolve the first reachable IPFS gateway URL for a CID. */
 export const resolveIpfsUrlWithMeta = async (cid) => {
   if (!cid) return null;
 
+  const cached = getCachedIpfsHit(cid);
+  if (cached) {
+    const cachedOk = await preloadImageCached(cached.url, 5000);
+    if (cachedOk) return { url: cached.url, gatewayIndex: cached.gatewayIndex };
+    invalidateImageCached(cached.url);
+  }
+
   const urls = getIpfsGatewayUrls(cid);
-  if (urls.length === 0) return null;
+  for (let gatewayIndex = 0; gatewayIndex < urls.length; gatewayIndex += 1) {
+    const url = urls[gatewayIndex];
+    const ok = await preloadGatewayWithRetry(url);
+    if (ok) {
+      cacheIpfsHit(cid, url, gatewayIndex);
+      return { url, gatewayIndex };
+    }
+  }
 
-  const raceWinner = new Promise((resolve) => {
-    let settled = false;
-    let pending = urls.length;
-
-    urls.forEach((url, gatewayIndex) => {
-      preloadImageCached(url, IPFS_GATEWAY_TIMEOUT_MS).then((ok) => {
-        if (settled) return;
-        if (ok) {
-          settled = true;
-          resolve({ url, gatewayIndex });
-          return;
-        }
-        pending -= 1;
-        if (pending === 0) resolve(null);
-      });
-    });
-  });
-
-  const overallTimeout = new Promise((resolve) => {
-    setTimeout(() => resolve(null), IPFS_RESOLVE_OVERALL_MS);
-  });
-
-  return Promise.race([raceWinner, overallTimeout]);
+  return null;
 };
 
 export const resolveIpfsUrl = async (cid) => {
@@ -136,8 +174,19 @@ export const resolveAfaIpfsUrlWithMeta = async (tokenId, isMinted) => {
   return resolveIpfsUrlWithMeta(cid);
 };
 
+const getTriedFromImg = (img) => {
+  const raw = img.dataset.ipfsTried || '';
+  return new Set(
+    raw.split(',').filter(Boolean).map((value) => Number(value)).filter((value) => Number.isFinite(value))
+  );
+};
+
+const saveTriedToImg = (img, tried) => {
+  img.dataset.ipfsTried = [...tried].join(',');
+};
+
 /** Try the next IPFS gateway after a failed image load. Returns true if a URL was set. */
-export const tryNextIpfsGateway = (img, cid) => {
+export const tryNextIpfsGateway = (img, cid, triedIndices = null) => {
   if (!cid || !img) return false;
 
   const urls = getIpfsGatewayUrls(cid);
@@ -146,10 +195,22 @@ export const tryNextIpfsGateway = (img, cid) => {
   const currentIndex = Number.isFinite(trackedIndex) && trackedIndex >= 0
     ? trackedIndex
     : findGatewayIndexForSrc(src, cid);
-  const nextIndex = currentIndex + 1;
 
-  if (nextIndex >= urls.length) return false;
+  const tried = triedIndices ?? getTriedFromImg(img);
 
+  if (currentIndex >= 0) {
+    invalidateImageCached(urls[currentIndex]);
+    tried.add(currentIndex);
+  }
+
+  const nextIndex = getNextUntriedGatewayIndex(tried, urls.length);
+  if (nextIndex < 0) {
+    saveTriedToImg(img, tried);
+    return false;
+  }
+
+  tried.add(nextIndex);
+  saveTriedToImg(img, tried);
   img.dataset.ipfsGateway = String(nextIndex);
   img.src = urls[nextIndex];
   return true;
@@ -164,9 +225,9 @@ export const markIpfsGatewayIndex = (img, url, cid) => {
   }
 };
 
-export const tryNextAfaIpfsGateway = async (img, tokenId, isMinted) => {
+export const tryNextAfaIpfsGateway = async (img, tokenId, isMinted, triedIndices = null) => {
   const cid = await getAfaIpfsCid(tokenId, isMinted);
-  return tryNextIpfsGateway(img, cid);
+  return tryNextIpfsGateway(img, cid, triedIndices);
 };
 
 export const setAfaIpfsImageSrc = async (img, tokenId, isMinted) => {
