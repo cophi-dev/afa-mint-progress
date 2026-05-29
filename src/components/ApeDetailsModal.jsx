@@ -23,11 +23,13 @@ import {
   getAfaThumbnailFallbackUrl,
   getAfaThumbnailUrl,
   getBaycThumbnailFallbackUrl,
+  getAfaIpfsCid,
+  getIpfsGatewayUrls,
+  findGatewayIndexForSrc,
   ipfsToHttpUrl,
-  resolveAfaIpfsUrl,
+  resolveAfaIpfsUrlWithMeta,
   resolveIpfsUrl,
   setAfaIpfsImageSrc,
-  tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
 
 const style = {
@@ -193,6 +195,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
   const [baycMetadata, setBaycMetadata] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [afaImageUrl, setAfaImageUrl] = useState(null);
+  const [afaGatewayIndex, setAfaGatewayIndex] = useState(null);
   const [baycImageUrl, setBaycImageUrl] = useState(null);
   const [imageReady, setImageReady] = useState(false);
   const [afaHighResLoading, setAfaHighResLoading] = useState(false);
@@ -215,6 +218,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     if (!open || !apeData) {
       setBaycMetadata(null);
       setAfaImageUrl(null);
+      setAfaGatewayIndex(null);
       setBaycImageUrl(null);
       setImageReady(false);
       setMetadataLoading(false);
@@ -227,12 +231,13 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const { tokenId, image, baycImage, isMinted } = apeData;
 
     setAfaImageUrl(image);
+    setAfaGatewayIndex(null);
     setBaycImageUrl(baycImage);
     setImageReady(true);
     setBaycMetadata(null);
     setMetadataLoading(true);
-    setAfaHighResLoading(isMinted);
-    setHiresLoadingMessage(isMinted ? pickHiresLoadingMessage() : null);
+    setAfaHighResLoading(false);
+    setHiresLoadingMessage(null);
 
     const loadMetadata = async () => {
       const cachedMetadata = getBaycMetadata(tokenId);
@@ -252,15 +257,16 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
 
     const loadAfaHighRes = async () => {
       try {
-        const afaHighRes = await resolveAfaIpfsUrl(tokenId, true);
+        const afaHighRes = await resolveAfaIpfsUrlWithMeta(tokenId, true);
         if (cancelled) return;
 
         if (afaHighRes) {
-          setAfaImageUrl(afaHighRes);
+          setAfaGatewayIndex(afaHighRes.gatewayIndex);
+          setHiresLoadingMessage(pickHiresLoadingMessage());
+          setAfaHighResLoading(true);
+          setAfaImageUrl(afaHighRes.url);
           return;
         }
-
-        setAfaHighResLoading(false);
       } catch {
         if (!cancelled) setAfaHighResLoading(false);
       }
@@ -351,14 +357,21 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const src = img.currentSrc || img.src;
 
     if (stepIndex === 0) {
-      if (apeData.isMinted && await tryNextAfaIpfsGateway(img, apeData.tokenId, true)) {
-        return;
-      }
+      if (apeData.isMinted && !isLocalThumbnailSrc(src)) {
+        const cid = await getAfaIpfsCid(apeData.tokenId, true);
+        const urls = getIpfsGatewayUrls(cid);
+        const currentIndex = afaGatewayIndex ?? findGatewayIndexForSrc(src, cid);
+        const nextIndex = currentIndex + 1;
 
-      if (!isLocalThumbnailSrc(src)) {
+        if (nextIndex < urls.length) {
+          setAfaGatewayIndex(nextIndex);
+          setAfaImageUrl(urls[nextIndex]);
+          return;
+        }
+
         clearAfaHighResLoading();
-        img.dataset.fallbackStage = 'webp';
-        img.src = getAfaThumbnailUrl(apeData.tokenId);
+        setAfaGatewayIndex(null);
+        setAfaImageUrl(getAfaThumbnailUrl(apeData.tokenId));
         return;
       }
 
@@ -387,7 +400,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
     const metadata = baycMetadata ?? await getBaycMetadataAsync(apeData.tokenId);
     const baycHighRes = ipfsToHttpUrl(metadata?.image);
     if (baycHighRes) img.src = baycHighRes;
-  }, [apeData, baycMetadata, clearAfaHighResLoading]);
+  }, [apeData, afaGatewayIndex, baycMetadata, clearAfaHighResLoading]);
 
   if (!apeData) return null;
 
@@ -421,6 +434,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
             key={`${stepIndex}-${image.url}`}
             image={image.url}
             alt={`${image.title} #${apeData.tokenId}`}
+            data-ipfs-gateway={stepIndex === 0 ? afaGatewayIndex ?? undefined : undefined}
             onLoad={(event) => handleImageLoad(stepIndex, event)}
             onError={(event) => handleImageError(stepIndex, event)}
             sx={{
