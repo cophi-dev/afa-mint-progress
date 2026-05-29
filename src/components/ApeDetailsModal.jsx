@@ -28,19 +28,22 @@ import {
   tryNextAfaIpfsGateway,
 } from '../utils/imageUrls';
 
+// Match isMobile (max-width: 768px) so layout and JS behavior stay in sync.
+const DESKTOP_LAYOUT = '@media (min-width: 769px)';
+
 const style = {
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: { xs: 'calc(100% - 16px)', md: '90%' },
+  width: { xs: 'calc(100% - 16px)', [DESKTOP_LAYOUT]: '90%' },
   maxWidth: '920px',
   maxHeight: {
     xs: 'calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)))',
-    md: '90vh',
+    [DESKTOP_LAYOUT]: '90vh',
   },
   bgcolor: '#1E1E1E',
-  borderRadius: { xs: '14px', md: '16px' },
+  borderRadius: { xs: '14px', [DESKTOP_LAYOUT]: '16px' },
   border: '1px solid rgba(255, 255, 255, 0.1)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
   overflow: 'hidden',
@@ -54,11 +57,11 @@ const cardStyle = {
   background: 'transparent',
   boxShadow: 'none',
   display: 'flex',
-  flexDirection: { xs: 'column', md: 'row' },
+  flexDirection: { xs: 'column', [DESKTOP_LAYOUT]: 'row' },
   flex: 1,
   minHeight: 0,
   maxHeight: '100%',
-  overflow: { xs: 'hidden', md: 'hidden' },
+  overflow: 'hidden',
   WebkitOverflowScrolling: 'touch',
 };
 
@@ -121,13 +124,13 @@ const ImageStatusOverlay = ({ title, subtitle, isMobile }) => (
 
 const imageContainerStyle = {
   flexShrink: 0,
-  width: { xs: '100%', md: 'min(52vw, calc(90vh - 32px))' },
-  maxWidth: { md: '480px' },
+  width: { xs: '100%', [DESKTOP_LAYOUT]: 'min(52vw, calc(90vh - 32px))' },
+  maxWidth: { [DESKTOP_LAYOUT]: '480px' },
   aspectRatio: '1',
   position: 'relative',
   backgroundColor: '#000',
   overflow: 'hidden',
-  touchAction: { xs: 'none', md: 'auto' },
+  touchAction: { xs: 'none', [DESKTOP_LAYOUT]: 'auto' },
 };
 
 const imageStyle = {
@@ -151,11 +154,11 @@ const contentStyle = {
   minWidth: 0,
   minHeight: 0,
   bgcolor: '#2A2A2A',
-  p: { xs: 1.25, md: 3 },
+  p: { xs: 1.25, [DESKTOP_LAYOUT]: 3 },
   display: 'flex',
   flexDirection: 'column',
-  gap: { xs: 0.75, md: 2 },
-  overflowY: { xs: 'hidden', md: 'auto' },
+  gap: { xs: 0.75, [DESKTOP_LAYOUT]: 2 },
+  overflowY: { xs: 'hidden', [DESKTOP_LAYOUT]: 'auto' },
 };
 
 const mobileInfoBoxStyle = {
@@ -171,8 +174,8 @@ const arrowButtonStyle = {
   transform: 'translateY(-50%)',
   bgcolor: 'rgba(0,0,0,0.3)',
   color: 'white',
-  width: { xs: 40, md: 'auto' },
-  height: { xs: 40, md: 'auto' },
+  width: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
+  height: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
   '&:hover': {
     bgcolor: 'rgba(0,0,0,0.5)',
   },
@@ -436,12 +439,12 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
           aria-label="Close details"
           sx={{
             position: 'absolute',
-            right: { xs: 6, md: 8 },
-            top: { xs: 6, md: 8 },
+            right: { xs: 6, [DESKTOP_LAYOUT]: 8 },
+            top: { xs: 6, [DESKTOP_LAYOUT]: 8 },
             color: 'white',
             zIndex: 2,
-            width: { xs: 40, md: 'auto' },
-            height: { xs: 40, md: 'auto' },
+            width: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
+            height: { xs: 40, [DESKTOP_LAYOUT]: 'auto' },
             bgcolor: 'rgba(0,0,0,0.55)',
             '&:hover': {
               bgcolor: 'rgba(0,0,0,0.7)',
@@ -606,7 +609,7 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                 sx={{
                   fontWeight: 700,
                   color: '#fff',
-                  fontSize: { xs: '1rem', md: '1.5rem' },
+                  fontSize: { xs: '1rem', [DESKTOP_LAYOUT]: '1.5rem' },
                 }}
               >
                 AFA #{apeData.tokenId}
@@ -766,8 +769,8 @@ const ApeDetailsModal = ({ open, onClose, apeData }) => {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: isMobile ? 0.375 : 0.5,
-                  maxHeight: { xs: 'none', md: 140 },
-                  overflowY: { xs: 'hidden', md: 'auto' },
+                  maxHeight: { xs: 'none', [DESKTOP_LAYOUT]: 140 },
+                  overflowY: { xs: 'hidden', [DESKTOP_LAYOUT]: 'auto' },
                   pr: 0.5,
                   '&::-webkit-scrollbar': { width: 4 },
                   '&::-webkit-scrollbar-thumb': {
