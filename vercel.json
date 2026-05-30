@@ -1,4 +1,18 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.afa-progress.com" }],
+      "destination": "https://afa-progress.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "afa-mint-progress.vercel.app" }],
+      "destination": "https://afa-progress.com/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/index.html",
@@ -28,6 +42,12 @@
       "source": "/apple-touch-icon.png",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/og-image.jpg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
     },
     {
